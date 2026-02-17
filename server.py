@@ -167,10 +167,10 @@ def main():
 ╔══════════════════════════════════════════════╗
 ║           VoxAI - Voice AI Assistant         ║
 ╠══════════════════════════════════════════════╣
-║  Server:   http://{HOST}:{PORT:<21s}  ║
+║  Server:   http://{HOST}:{str(PORT):<21s}  ║
 ║  Backend:  {MODEL_BACKEND:<33s}║
 ║                                              ║
-║  Open http://localhost:{PORT} in your browser  ║
+║  Open http://localhost:{str(PORT):<24s}║
 ╚══════════════════════════════════════════════╝
 """)
     try:
