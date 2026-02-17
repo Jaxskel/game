@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoxAI - Voice Assistant</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                    </div>
+                    <span class="logo-text">VoxAI</span>
+                </div>
+            </div>
+            <button class="new-chat-btn" id="newChatBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                New Conversation
+            </button>
+            <div class="chat-history" id="chatHistory">
+                <div class="history-label">Recent</div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="model-badge">
+                    <div class="model-dot"></div>
+                    <span>PersonalPlex 7B</span>
+                </div>
+                <div class="settings-btn" id="settingsBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                    Settings
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <button class="menu-toggle" id="menuToggle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <div class="header-title">
+                    <h1>Voice Assistant</h1>
+                    <span class="status-indicator" id="statusIndicator">
+                        <span class="status-dot online"></span>
+                        Ready
+                    </span>
+                </div>
+                <div class="header-actions">
+                    <button class="icon-btn" id="clearChatBtn" title="Clear chat">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Chat Area -->
+            <div class="chat-area" id="chatArea">
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-icon">
+                        <div class="pulse-ring"></div>
+                        <div class="pulse-ring delay-1"></div>
+                        <div class="pulse-ring delay-2"></div>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                    </div>
+                    <h2>Hey, I'm VoxAI</h2>
+                    <p>Your personal voice assistant powered by PersonalPlex 7B. Tap the microphone to start talking, or type a message below.</p>
+                    <div class="quick-actions">
+                        <button class="quick-action" data-prompt="Tell me a fun fact">Tell me a fun fact</button>
+                        <button class="quick-action" data-prompt="What can you help me with?">What can you do?</button>
+                        <button class="quick-action" data-prompt="Write me a short poem">Write a poem</button>
+                        <button class="quick-action" data-prompt="Explain something complex simply">Explain simply</button>
+                    </div>
+                </div>
+                <div class="messages-container" id="messagesContainer"></div>
+            </div>
+
+            <!-- Voice Visualizer Overlay -->
+            <div class="voice-overlay" id="voiceOverlay">
+                <div class="voice-visualizer">
+                    <div class="visualizer-bars" id="visualizerBars">
+                        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                        <div class="bar"></div><div class="bar"></div>
+                    </div>
+                    <div class="voice-status" id="voiceStatus">Listening...</div>
+                    <div class="voice-transcript" id="voiceTranscript"></div>
+                </div>
+                <button class="voice-cancel-btn" id="voiceCancelBtn">Cancel</button>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <textarea class="message-input" id="messageInput" placeholder="Type a message or tap the mic..." rows="1"></textarea>
+                    <div class="input-actions">
+                        <button class="mic-btn" id="micBtn" title="Voice input">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                <line x1="12" y1="19" x2="12" y2="23"/>
+                                <line x1="8" y1="23" x2="16" y2="23"/>
+                            </svg>
+                        </button>
+                        <button class="send-btn" id="sendBtn" title="Send message" disabled>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="input-footer">
+                    <span>PersonalPlex 7B &middot; Voice AI Assistant</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="modal-close" id="settingsClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label class="setting-label">API Endpoint</label>
+                    <input type="text" class="setting-input" id="apiEndpoint" value="http://localhost:8000" placeholder="http://localhost:8000">
+                    <span class="setting-hint">URL where the PersonalPlex 7B model server is running</span>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">Voice</label>
+                    <select class="setting-input" id="voiceSelect">
+                        <option value="default">System Default</option>
+                    </select>
+                    <span class="setting-hint">Text-to-speech voice for AI responses</span>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">Speech Rate</label>
+                    <input type="range" class="setting-range" id="speechRate" min="0.5" max="2" step="0.1" value="1">
+                    <span class="setting-hint">Speed of spoken responses: <span id="speechRateVal">1.0x</span></span>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">Temperature</label>
+                    <input type="range" class="setting-range" id="temperature" min="0" max="2" step="0.1" value="0.7">
+                    <span class="setting-hint">Model creativity: <span id="temperatureVal">0.7</span></span>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">Max Tokens</label>
+                    <input type="number" class="setting-input" id="maxTokens" value="512" min="64" max="4096">
+                    <span class="setting-hint">Maximum response length</span>
+                </div>
+                <div class="setting-group toggle-group">
+                    <label class="setting-label">Auto-speak responses</label>
+                    <label class="toggle">
+                        <input type="checkbox" id="autoSpeak" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-group toggle-group">
+                    <label class="setting-label">Dark mode</label>
+                    <label class="toggle">
+                        <input type="checkbox" id="darkMode" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="settingsCancel">Cancel</button>
+                <button class="btn-primary" id="settingsSave">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# VoxAI - Voice AI Assistant
+# The server uses only Python stdlib, no external dependencies required.
+#
+# For the PersonalPlex 7B model backend, choose one:
+#
+# Option A: llama-cpp-python (recommended for local GGUF models)
+# pip install llama-cpp-python[server]
+# python -m llama_cpp.server --model ./personalplex-7b.gguf --port 8080
+#
+# Option B: Ollama (easiest setup)
+# Install from https://ollama.ai
+# ollama pull personalplex-7b
+#
+# Option C: vLLM (best for GPU inference)
+# pip install vllm
+# python -m vllm.entrypoints.openai.api_server --model personalplex-7b --port 8080
