@@ -51,8 +51,10 @@ type Part = { text: string } | { inlineData: { mimeType: string; data: string } 
 
 /** One structured-output call with retry/backoff on rate limits. */
 async function generateJson(parts: Part[], schema: Schema): Promise<unknown> {
+  // Keep total retry time well under the serverless function limit — the
+  // client retries too, so err on the side of failing this request fast.
   let lastErr: unknown;
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const res = await ai().models.generateContent({
         model: MODEL,
@@ -69,8 +71,8 @@ async function generateJson(parts: Part[], schema: Schema): Promise<unknown> {
       lastErr = err;
       const msg = err instanceof Error ? err.message : String(err);
       const retryable = /429|rate|quota|RESOURCE_EXHAUSTED|503|overloaded/i.test(msg);
-      if (!retryable || attempt === 3) break;
-      await new Promise((r) => setTimeout(r, 2000 * 2 ** attempt));
+      if (!retryable || attempt === 2) break;
+      await new Promise((r) => setTimeout(r, 1500 * 2 ** attempt));
     }
   }
   if (lastErr instanceof GeminiError) throw lastErr;
