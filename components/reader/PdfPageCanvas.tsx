@@ -35,7 +35,6 @@ export default function PdfPageCanvas({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       const task = pdfPage.render({
-        canvas,
         canvasContext: ctx,
         viewport,
         transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
