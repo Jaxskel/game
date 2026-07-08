@@ -11,9 +11,10 @@ const HEADERS = {
   accept: "*/*",
 };
 
-let failures = 0;
+async function main() {
+  let failures = 0;
 
-const gutenberg = await searchGutenberg("Romeo and Juliet", "Shakespeare");
+  const gutenberg = await searchGutenberg("Romeo and Juliet", "Shakespeare");
 console.log(
   "gutenberg sources:",
   gutenberg.map((s) => `${s.id} ${s.title} → ${s.downloadUrl}`),
@@ -52,5 +53,11 @@ for (const s of archive) {
   }
 }
 
-console.log(failures === 0 ? "ALL OK" : `${failures} FAILURE(S)`);
-process.exit(failures === 0 ? 0 : 1);
+  console.log(failures === 0 ? "ALL OK" : `${failures} FAILURE(S)`);
+  process.exit(failures === 0 ? 0 : 1);
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
