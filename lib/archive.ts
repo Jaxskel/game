@@ -34,6 +34,11 @@ async function findPdfFile(identifier: string): Promise<ArchiveFile | null> {
   if (md.is_dark) return null;
   const restricted = md.metadata?.["access-restricted-item"];
   if (restricted === "true" || restricted === true) return null;
+  // Lending-library items 401 on download even when they look public.
+  const collections = ([] as unknown[]).concat(md.metadata?.collection ?? []);
+  if (collections.some((c) => c === "inlibrary" || c === "printdisabled")) {
+    return null;
+  }
 
   const pdfs = (md.files ?? []).filter(
     (f) =>
@@ -49,7 +54,20 @@ async function findPdfFile(identifier: string): Promise<ArchiveFile | null> {
     return Number(a.size ?? Infinity) - Number(b.size ?? Infinity);
   });
   const pick = pdfs.find((f) => Number(f.size ?? 0) <= MAX_PDF_BYTES);
-  return pick ?? null;
+  if (!pick) return null;
+
+  // Verify the file actually downloads (restricted items 401/403 here).
+  const check = await fetch(
+    `https://archive.org/download/${identifier}/${encodeURIComponent(pick.name)}`,
+    {
+      headers: { ...UA, range: "bytes=0-0" },
+      redirect: "follow",
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+  if (check.status !== 200 && check.status !== 206) return null;
+  check.body?.cancel();
+  return pick;
 }
 
 export async function searchArchive(

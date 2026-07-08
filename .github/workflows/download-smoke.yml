@@ -4,6 +4,9 @@ on:
   push:
     paths:
       - "scripts/download-smoke.mjs"
+      - "scripts/live-smoke.ts"
+      - "lib/gutendex.ts"
+      - "lib/archive.ts"
       - ".github/workflows/download-smoke.yml"
 
 jobs:
@@ -16,4 +19,4 @@ jobs:
         with:
           node-version: 22
       - name: Probe book sources from a datacenter IP
-        run: node scripts/download-smoke.mjs
+        run: npx -y tsx scripts/live-smoke.ts
