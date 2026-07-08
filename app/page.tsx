@@ -73,11 +73,14 @@ export default function Home() {
         setIngestStatus("Opening your book…");
         router.push(`/book/${bookId}`);
       } catch (e) {
+        console.error("book ingest failed:", e);
         setIngestStatus(null);
+        const detail =
+          e instanceof Error && e.message ? ` (${e.message.slice(0, 200)})` : "";
         setError(
           e instanceof IngestError
             ? e.message
-            : "Something went wrong getting the book. Try another source.",
+            : `Something went wrong getting the book${detail}. Try another source, or upload your own PDF.`,
         );
       }
     },

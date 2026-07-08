@@ -1,0 +1,19 @@
+name: live-probe
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "scripts/live-probe.mjs"
+      - ".github/workflows/live-probe.yml"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Probe the deployed app's API endpoints
+        run: node scripts/live-probe.mjs
