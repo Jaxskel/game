@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a12">
+<title>NERVE</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+  :root{
+    --bg:#0a0a12; --panel:#12121f; --line:#22223a;
+    --green:#28e07a; --red:#ff3b5c; --gold:#ffcf3a; --cyan:#3ad6ff; --dim:#6b6b8a;
+    --font:'Segoe UI',system-ui,-apple-system,sans-serif;
+  }
+  html,body{height:100%; background:var(--bg); font-family:var(--font); color:#fff; overflow:hidden;}
+  #app{position:fixed; inset:0; display:flex; flex-direction:column; max-width:520px; margin:0 auto; overflow:hidden;}
+
+  /* ---- top bar ---- */
+  .top{display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--line); background:linear-gradient(180deg,#14142400,#0a0a12);}
+  .brand{font-weight:900; letter-spacing:3px; font-size:20px;}
+  .brand b{color:var(--red);}
+  .wallet{display:flex; flex-direction:column; align-items:flex-end;}
+  .wallet .chips{font-weight:800; font-size:18px; color:var(--gold); font-variant-numeric:tabular-nums;}
+  .wallet .lvl{font-size:11px; color:var(--dim);}
+
+  /* ---- stage ---- */
+  .stage{position:relative; flex:1; overflow:hidden;}
+  #fx{position:absolute; inset:0; width:100%; height:100%;}
+  .center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;}
+  .mult{font-size:78px; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:-2px; line-height:1;
+        text-shadow:0 0 30px currentColor; transition:color .1s;}
+  .sub{margin-top:8px; font-size:14px; letter-spacing:2px; color:var(--dim); text-transform:uppercase; min-height:18px;}
+  .youwin{margin-top:14px; font-size:22px; font-weight:800; min-height:26px;}
+
+  /* tension meter */
+  .tension-wrap{position:absolute; top:14px; left:16px; right:16px;}
+  .tension-lbl{font-size:10px; letter-spacing:2px; color:var(--dim); margin-bottom:4px; display:flex; justify-content:space-between;}
+  .tension{height:6px; border-radius:4px; background:#1c1c2e; overflow:hidden;}
+  .tension i{display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--green),var(--gold),var(--red)); transition:width .12s;}
+
+  /* players rail */
+  .rail{position:absolute; bottom:12px; left:0; right:0; display:flex; gap:8px; padding:0 12px; overflow-x:auto; pointer-events:none;}
+  .rail::-webkit-scrollbar{display:none;}
+  .pl{flex:0 0 auto; min-width:66px; background:#12121faa; border:1px solid var(--line); border-radius:12px; padding:6px 8px; text-align:center; transition:.2s; backdrop-filter:blur(4px);}
+  .pl .av{font-size:18px;}
+  .pl .nm{font-size:10px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60px;}
+  .pl .st{font-size:11px; font-weight:800; font-variant-numeric:tabular-nums;}
+  .pl.out{opacity:.55; border-color:var(--green);}
+  .pl.out .st{color:var(--green);}
+  .pl.dead{opacity:.4; border-color:var(--red);}
+  .pl.dead .st{color:var(--red);}
+  .pl.you{border-color:var(--cyan); box-shadow:0 0 12px #3ad6ff44;}
+
+  /* ---- controls ---- */
+  .ctrl{padding:14px 16px calc(14px + env(safe-area-inset-bottom)); background:var(--panel); border-top:1px solid var(--line);}
+  .betrow{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .betlbl{font-size:11px; color:var(--dim); letter-spacing:1px;}
+  .chip{flex:1; padding:9px 0; text-align:center; background:#1b1b2e; border:1px solid var(--line); border-radius:10px; font-weight:800; font-size:14px; cursor:pointer; transition:.15s;}
+  .chip.sel{background:var(--gold); color:#000; border-color:var(--gold);}
+  .chip:active{transform:scale(.95);}
+
+  .btn{width:100%; padding:20px; border:none; border-radius:16px; font-size:22px; font-weight:900; letter-spacing:1px; cursor:pointer; transition:.1s; position:relative; overflow:hidden;}
+  .btn:active{transform:scale(.98);}
+  .btn.join{background:linear-gradient(135deg,var(--cyan),#2b8fff); color:#04121f;}
+  .btn.cash{background:linear-gradient(135deg,var(--green),#12b85f); color:#042012; animation:pulse 1s infinite;}
+  .btn.cash small{display:block; font-size:13px; font-weight:700; opacity:.85; letter-spacing:0;}
+  .btn.wait{background:#1b1b2e; color:var(--dim); cursor:default;}
+  .btn.dead{background:var(--red); color:#fff;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 #28e07a55;}50%{box-shadow:0 0 0 8px #28e07a00;}}
+
+  /* toast */
+  .toast{position:absolute; top:70px; left:50%; transform:translateX(-50%); background:#000c; border:1px solid var(--line); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:700; opacity:0; transition:.3s; pointer-events:none; white-space:nowrap;}
+  .toast.show{opacity:1;}
+
+  /* result card / share */
+  .modal{position:fixed; inset:0; background:#000a; display:none; align-items:center; justify-content:center; z-index:50; padding:24px;}
+  .modal.show{display:flex;}
+  .card{width:100%; max-width:340px; background:linear-gradient(160deg,#191930,#0d0d18); border:1px solid var(--line); border-radius:24px; padding:26px; text-align:center;}
+  .card h2{font-size:14px; letter-spacing:3px; color:var(--dim); margin-bottom:6px;}
+  .card .big{font-size:64px; font-weight:900; margin:6px 0;}
+  .card .msg{font-size:15px; color:#cfcfe8; margin-bottom:18px; min-height:20px;}
+  .card .row{display:flex; gap:10px;}
+  .card .b2{flex:1; padding:14px; border-radius:12px; border:none; font-weight:800; font-size:15px; cursor:pointer;}
+  .b2.primary{background:var(--gold); color:#000;}
+  .b2.ghost{background:#1b1b2e; color:#fff; border:1px solid var(--line);}
+
+  .flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top">
+    <div class="brand">NER<b>V</b>E</div>
+    <div class="wallet">
+      <div class="chips" id="chips">1,000</div>
+      <div class="lvl" id="lvl">LVL 1 · streak 0🔥</div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <canvas id="fx"></canvas>
+    <div class="tension-wrap">
+      <div class="tension-lbl"><span>TABLE NERVE</span><span id="tenPct">0%</span></div>
+      <div class="tension"><i id="tenBar"></i></div>
+    </div>
+    <div class="center">
+      <div class="mult" id="mult" style="color:var(--dim)">1.00×</div>
+      <div class="sub" id="sub">place your bet</div>
+      <div class="youwin" id="youwin"></div>
+    </div>
+    <div class="toast" id="toast"></div>
+    <div class="rail" id="rail"></div>
+    <div class="flash" id="flash"></div>
+  </div>
+
+  <div class="ctrl">
+    <div class="betrow">
+      <span class="betlbl">BET</span>
+      <div class="chip" data-bet="50">50</div>
+      <div class="chip sel" data-bet="100">100</div>
+      <div class="chip" data-bet="250">250</div>
+      <div class="chip" data-bet="500">500</div>
+    </div>
+    <button class="btn join" id="action">JOIN ROUND</button>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="card">
+    <h2 id="cardH">ROUND OVER</h2>
+    <div class="big" id="cardBig">—</div>
+    <div class="msg" id="cardMsg"></div>
+    <div class="row">
+      <button class="b2 ghost" id="shareBtn">SHARE</button>
+      <button class="b2 primary" id="againBtn">PLAY AGAIN</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const rand=(a,b)=>a+Math.random()*(b-a);
+const fmt=n=>Math.round(n).toLocaleString();
+
+// ---------- state ----------
+const S={
+  chips:1000, lvl:1, xp:0, streak:0,
+  bet:100, phase:'idle', // idle | live | cashed | dead
+  mult:1, tension:0, crashHazardBoost:0,
+  you:null, players:[], t0:0, raf:0,
+  best:1,
+};
+const AVATARS=['🦊','🐺','🐲','🦈','🐍','🦅','🐙','🦂','🐆','🦍','🐉','👽'];
+const NAMES=['V1PER','Ghost','K1NG','Nova','Rekt','Zero','Boss','Lucky','Neo','Blaze','Frost','Dice','Ace','Wolf','Riot'];
+
+// ---------- audio (web audio, no files) ----------
+let AC; const audio=()=>{ if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}} return AC; };
+function beep(freq,dur=0.06,type='sine',vol=0.15){
+  const c=audio(); if(!c) return;
+  const o=c.createOscillator(), g=c.createGain();
+  o.type=type; o.frequency.value=freq; o.connect(g); g.connect(c.destination);
+  g.gain.setValueAtTime(vol,c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+dur);
+  o.start(); o.stop(c.currentTime+dur);
+}
+function noiseBurst(dur=0.3,vol=0.3){
+  const c=audio(); if(!c) return;
+  const n=c.sampleRate*dur, buf=c.createBuffer(1,n,c.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2);
+  const src=c.createBufferSource(); src.buffer=buf;
+  const g=c.createGain(); g.gain.value=vol; src.connect(g); g.connect(c.destination); src.start();
+}
+
+// ---------- canvas fx ----------
+const cv=$('#fx'), ctx=cv.getContext('2d');
+let W,H,DPR, shake=0, parts=[];
+function resize(){ DPR=Math.min(2,devicePixelRatio||1); const r=$('#stage').getBoundingClientRect();
+  W=r.width; H=r.height; cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize',resize);
+function burst(x,y,color,n=24,spd=6){ for(let i=0;i<n;i++){ const a=rand(0,Math.PI*2), s=rand(1,spd);
+  parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,color,r:rand(1.5,4)}); } }
+let hist=[]; // multiplier trail points
+function drawFrame(){
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  if(shake>0){ ctx.translate(rand(-shake,shake),rand(-shake,shake)); shake*=0.86; if(shake<0.3)shake=0; }
+  // graph line
+  if(hist.length>1){
+    const col = S.phase==='dead' ? '#ff3b5c' : (S.phase==='cashed'?'#28e07a':'#3ad6ff');
+    ctx.beginPath();
+    hist.forEach((p,i)=>{ i? ctx.lineTo(p.x,p.y): ctx.moveTo(p.x,p.y); });
+    ctx.strokeStyle=col; ctx.lineWidth=3; ctx.shadowColor=col; ctx.shadowBlur=14; ctx.stroke();
+    ctx.shadowBlur=0;
+    // fill under
+    const last=hist[hist.length-1];
+    ctx.lineTo(last.x,H); ctx.lineTo(hist[0].x,H); ctx.closePath();
+    ctx.fillStyle=col+'18'; ctx.fill();
+    // head dot
+    ctx.beginPath(); ctx.arc(last.x,last.y,5,0,7); ctx.fillStyle=col; ctx.fill();
+  }
+  parts=parts.filter(p=>p.life>0);
+  parts.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.15; p.life-=0.02; p.vx*=0.98;
+    ctx.globalAlpha=p.life; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); });
+  ctx.globalAlpha=1;
+  ctx.restore();
+  requestAnimationFrame(drawFrame);
+}
+
+// ---------- players ----------
+function makeBots(){
+  const used=new Set();
+  const n=5+Math.floor(rand(0,4));
+  const list=[];
+  for(let i=0;i<n;i++){
+    let nm; do{ nm=NAMES[Math.floor(rand(0,NAMES.length))]; }while(used.has(nm)); used.add(nm);
+    // personality: cashout target multiplier (greedy = high)
+    const target=rand(1.35,rand(2,9)); // skewed toward early, some greedy
+    list.push({ id:'b'+i, name:nm, av:AVATARS[Math.floor(rand(0,AVATARS.length))],
+      bet:[50,100,250,500][Math.floor(rand(0,4))], target, status:'in', cashAt:0, bot:true });
+  }
+  return list;
+}
+function renderRail(){
+  const rail=$('#rail'); rail.innerHTML='';
+  const all=[S.you,...S.players].filter(Boolean);
+  all.forEach(p=>{
+    const d=document.createElement('div');
+    d.className='pl'+(p===S.you?' you':'')+(p.status==='out'?' out':'')+(p.status==='dead'?' dead':'');
+    let st = p.status==='out' ? p.cashAt.toFixed(2)+'×' : p.status==='dead' ? 'BUST' : '…';
+    d.innerHTML=`<div class="av">${p.av}</div><div class="nm">${p===S.you?'YOU':p.name}</div><div class="st">${st}</div>`;
+    rail.appendChild(d);
+  });
+}
+
+// ---------- round flow ----------
+function setBet(b){ S.bet=b; document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('sel',+c.dataset.bet===b)); }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1400); }
+
+function startRound(){
+  if(S.chips < S.bet){ toast('Not enough chips!'); return; }
+  audio();
+  S.chips-=S.bet; updateWallet();
+  S.phase='live'; S.mult=1; S.tension=0; S.crashHazardBoost=0; hist=[]; parts=[];
+  S.you={ id:'you', name:'YOU', av:'⭐', bet:S.bet, status:'in', cashAt:0 };
+  S.players=makeBots();
+  S.best=Math.max(S.best,1);
+  S.t0=performance.now();
+  renderRail();
+  const a=$('#action'); a.className='btn cash'; a.innerHTML=`CASH OUT <small>+0 chips</small>`;
+  $('#sub').textContent='HOLD YOUR NERVE';
+  $('#youwin').textContent='';
+  beep(440,0.08,'square',0.12); setTimeout(()=>beep(660,0.08,'square',0.12),90);
+  cancelAnimationFrame(S.raf); loop();
+}
+
+function loop(){
+  const now=performance.now();
+  const t=(now-S.t0)/1000;
+  // multiplier grows exponentially, accelerating
+  S.mult = Math.pow(1.0007, t*1000) * (1 + t*t*0.012);
+  if(S.mult<1) S.mult=1;
+
+  // bots cash out at their targets
+  S.players.forEach(p=>{
+    if(p.status==='in' && S.mult>=p.target){
+      p.status='out'; p.cashAt=S.mult; S.crashHazardBoost+=0.9;
+      beep(520,0.05,'sine',0.08);
+    }
+  });
+
+  // tension: rises with multiplier + each bail
+  const cashedCount=S.players.filter(p=>p.status==='out').length + (S.you.status==='out'?1:0);
+  S.tension = Math.min(100, (S.mult-1)*9 + cashedCount*7 + t*3);
+  $('#tenBar').style.width=S.tension+'%';
+  $('#tenPct').textContent=Math.round(S.tension)+'%';
+
+  // hazard per frame -> crash?
+  const hz = 0.00035*Math.pow(S.mult,1.35) * (1 + 0.25*cashedCount) * (1+S.crashHazardBoost*0.02);
+  const alive = S.you.status==='in' || S.players.some(p=>p.status==='in');
+  if(alive && Math.random()<hz){ return crash(); }
+
+  // update visuals
+  const m=$('#mult'); m.textContent=S.mult.toFixed(2)+'×';
+  const heat = S.tension>75?'var(--red)':S.tension>45?'var(--gold)':'var(--cyan)';
+  m.style.color = S.you.status==='out' ? 'var(--green)' : heat;
+  const scale=1+Math.min(0.35,(S.mult-1)*0.02); m.style.transform=`scale(${scale})`;
+  if(S.tension>70) shake=Math.min(6,(S.tension-70)*0.25);
+
+  // trail point
+  const x=(t/ (t+2))*W; // ease across
+  const y=H - Math.min(H-40, (Math.log(S.mult)/Math.log(50))*(H-60)) - 20;
+  hist.push({x:20+x*0.9,y}); if(hist.length>200)hist.shift();
+
+  if(S.you.status==='in'){
+    const win=Math.floor(S.bet*S.mult);
+    $('#action').querySelector('small').textContent=`+${fmt(win)} chips`;
+  }
+  renderRail();
+  S.raf=requestAnimationFrame(loop);
+}
+
+function cashOut(){
+  if(S.phase!=='live' || S.you.status!=='in') return;
+  S.you.status='out'; S.you.cashAt=S.mult; S.crashHazardBoost+=0.9;
+  const win=Math.floor(S.bet*S.mult);
+  S.chips+=win; updateWallet();
+  S.best=Math.max(S.best,S.mult);
+  const stillIn=S.players.filter(p=>p.status==='in').length;
+  $('#youwin').style.color='var(--green)';
+  $('#youwin').textContent=`+${fmt(win)} 🟢`;
+  const a=$('#action'); a.className='btn wait'; a.textContent='CASHED OUT ✓';
+  const {x,y}=headPos(); burst(x,y,'#28e07a',30,7);
+  beep(880,0.09,'sine',0.18); setTimeout(()=>beep(1320,0.12,'sine',0.15),80);
+  toast(stillIn===0?'ICE COLD — last one out!':`Cashed @ ${S.mult.toFixed(2)}× · ${stillIn} still in`);
+}
+
+function crash(){
+  cancelAnimationFrame(S.raf);
+  S.phase='dead';
+  // who was last to cash before the blast (nerve bonus)
+  const outs=[S.you,...S.players].filter(p=>p.status==='out');
+  let lastNerve=null; if(outs.length){ lastNerve=outs.reduce((a,b)=>b.cashAt>a.cashAt?b:a); }
+  S.players.forEach(p=>{ if(p.status==='in') p.status='dead'; });
+  const youBust = S.you.status==='in';
+  if(youBust) S.you.status='dead';
+
+  // fx
+  shake=14; const {x,y}=headPos(); burst(x,y,'#ff3b5c',60,11);
+  const fl=$('#flash'); fl.style.transition='none'; fl.style.opacity='.8';
+  requestAnimationFrame(()=>{ fl.style.transition='opacity .4s'; fl.style.opacity='0'; });
+  noiseBurst(0.4,0.35); beep(80,0.4,'sawtooth',0.25);
+  $('#mult').textContent=S.mult.toFixed(2)+'×'; $('#mult').style.color='var(--red)';
+  $('#sub').textContent='VAULT BLEW';
+  renderRail();
+
+  // scoring
+  let nerveBonus=0, lastNerveYou=false;
+  if(!youBust && lastNerve===S.you && outs.length>0){
+    nerveBonus=Math.floor(S.bet*S.you.cashAt); // double the win
+    lastNerveYou=true;
+    S.chips+=nerveBonus; updateWallet();
+  }
+  if(youBust){ S.streak=0; }
+  else { S.streak++; addXP(10+Math.floor(S.you.cashAt*4)); }
+  updateWallet();
+  setTimeout(()=>showResult(youBust,lastNerveYou,nerveBonus),650);
+}
+
+function headPos(){ const p=hist[hist.length-1]||{x:W/2,y:H/2}; const r=$('#stage').getBoundingClientRect(); return {x:p.x,y:p.y}; }
+
+// ---------- progression ----------
+function addXP(n){ S.xp+=n; const need=S.lvl*100; if(S.xp>=need){ S.xp-=need; S.lvl++; toast(`⬆️ LEVEL ${S.lvl}! +500 chips`); S.chips+=500; beep(1046,0.12,'triangle',0.2);} }
+function updateWallet(){ $('#chips').textContent=fmt(S.chips); $('#lvl').textContent=`LVL ${S.lvl} · streak ${S.streak}🔥`; }
+
+// ---------- result / share ----------
+function showResult(youBust,lastNerveYou,bonus){
+  const modal=$('#modal');
+  $('#cardBig').textContent=S.you.status==='dead'?S.mult.toFixed(2)+'×':(S.you.cashAt||1).toFixed(2)+'×';
+  if(lastNerveYou){
+    $('#cardH').textContent='🏆 LAST NERVE';
+    $('#cardBig').style.color='var(--gold)';
+    $('#cardMsg').innerHTML=`Ice in your veins. Last one out before the blast.<br><b style="color:var(--gold)">+${fmt(bonus)} bonus chips</b>`;
+  } else if(youBust){
+    $('#cardH').textContent='💥 BUSTED';
+    $('#cardBig').style.color='var(--red)';
+    $('#cardMsg').innerHTML=`You held too long. Streak reset.<br>Lost ${fmt(S.bet)} chips.`;
+  } else {
+    $('#cardH').textContent='CASHED OUT';
+    $('#cardBig').style.color='var(--green)';
+    $('#cardMsg').innerHTML=`Won ${fmt(Math.floor(S.bet*S.you.cashAt))} chips · streak ${S.streak}🔥<br>Vault blew at ${S.mult.toFixed(2)}×.`;
+  }
+  modal.classList.add('show');
+}
+function share(){
+  const r = S.you.status==='dead' ? `busted at ${S.mult.toFixed(2)}× 💥` : `held to ${(S.you.cashAt).toFixed(2)}× 🧊`;
+  const txt=`I ${r} in NERVE — how long can YOU hold? 🎰`;
+  if(navigator.share){ navigator.share({title:'NERVE',text:txt}).catch(()=>{}); }
+  else { navigator.clipboard?.writeText(txt); toast('Copied result — go flex 📋'); }
+}
+
+// ---------- input ----------
+$('#action').addEventListener('click',()=>{
+  if(S.phase==='idle'||S.phase==='dead'||S.phase==='cashed'){ startRound(); }
+  else if(S.phase==='live'){ cashOut(); }
+});
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{ if(S.phase==='live')return; setBet(+c.dataset.bet); beep(300,0.03,'square',0.08); }));
+$('#againBtn').addEventListener('click',()=>{ $('#modal').classList.remove('show');
+  const a=$('#action'); a.className='btn join'; a.textContent='JOIN ROUND'; $('#sub').textContent='place your bet'; $('#youwin').textContent='';
+  $('#mult').textContent='1.00×'; $('#mult').style.color='var(--dim)'; $('#mult').style.transform='scale(1)';
+  $('#tenBar').style.width='0%'; $('#tenPct').textContent='0%'; S.phase='idle'; hist=[]; renderRail();
+});
+$('#shareBtn').addEventListener('click',share);
+
+// ---------- boot ----------
+resize(); drawFrame(); updateWallet(); renderRail();
+$('#action').className='btn join'; $('#action').textContent='JOIN ROUND';
+})();
+</script>
+</body>
+</html>
