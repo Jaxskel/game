@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - "scripts/live-probe.mjs"
+      - "scripts/live-ingest-test.ts"
+      - "lib/pdf/textToPdf.ts"
       - ".github/workflows/live-probe.yml"
 
 jobs:
@@ -17,3 +19,7 @@ jobs:
           node-version: 22
       - name: Probe the deployed app's API endpoints
         run: node scripts/live-probe.mjs
+      - name: Install deps
+        run: npm ci
+      - name: Full ingest pipeline on real book text
+        run: npx -y tsx scripts/live-ingest-test.ts
