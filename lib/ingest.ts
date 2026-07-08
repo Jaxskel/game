@@ -40,7 +40,16 @@ async function assertTextLayer(bytes: ArrayBuffer): Promise<number> {
 async function fetchViaProxy(url: string, onProgress?: (pct: number | null) => void) {
   const res = await fetch(`/api/fetch-book?url=${encodeURIComponent(url)}`);
   if (!res.ok) {
-    throw new IngestError(`Download failed (${res.status}). Try another source.`);
+    let detail = "";
+    try {
+      const data = await res.json();
+      if (data?.error?.message) detail = ` — ${data.error.message}`;
+    } catch {
+      // non-JSON error body
+    }
+    throw new IngestError(
+      `Download failed (${res.status}${detail}). Try another source below, or upload your own PDF.`,
+    );
   }
   const total = Number(res.headers.get("content-length")) || 0;
   if (!res.body) return res.arrayBuffer();
