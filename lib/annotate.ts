@@ -10,7 +10,10 @@ export interface AnnotateMeta {
   analysisContext: { characters: string[]; themes: string[] };
 }
 
-const BATCH_SIZE = 5;
+// Small batches keep each request fast enough for mobile connections and
+// Vercel's function time limit (rate-limit retries happen server-side too).
+const BATCH_SIZE = 3;
+const CLIENT_RETRIES = 2;
 
 // Serialize all annotation calls (express-mode Gemini keys have tight rate
 // limits) and dedupe pages already queued this session.
@@ -21,21 +24,37 @@ async function callAnnotate(
   meta: AnnotateMeta,
   pages: { page: number; text: string }[],
 ): Promise<Annotation[]> {
-  const res = await fetch("/api/annotate-pages", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      title: meta.title,
-      author: meta.author,
-      analysisContext: meta.analysisContext,
-      pages,
-    }),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data?.error?.message ?? `annotation failed (${res.status})`);
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= CLIENT_RETRIES; attempt++) {
+    try {
+      const res = await fetch("/api/annotate-pages", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          title: meta.title,
+          author: meta.author,
+          analysisContext: meta.analysisContext,
+          pages,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data?.error?.message ?? `annotation failed (${res.status})`;
+        // Retry rate limits / upstream flakiness; bail on real 4xx errors.
+        if (res.status < 500 && res.status !== 429) throw new Error(msg);
+        lastErr = new Error(msg);
+      } else {
+        return data.annotations as Annotation[];
+      }
+    } catch (e) {
+      // Network-level failure (Safari: "Load failed") — retry.
+      lastErr = e;
+    }
+    if (attempt < CLIENT_RETRIES) {
+      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+    }
   }
-  return data.annotations as Annotation[];
+  throw lastErr instanceof Error ? lastErr : new Error("annotation failed");
 }
 
 /**

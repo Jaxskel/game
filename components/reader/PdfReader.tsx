@@ -137,10 +137,17 @@ export default function PdfReader({ bookId }: { bookId: string }) {
       const extracted = await Promise.all(wanted.map(getExtracted));
       if (cancelled) return;
       setAnnotating(true);
-      await ensureAnnotations(meta, extracted, onPageAnnotations, (msg) =>
-        setError(`Annotating hit a snag: ${msg}`),
-      );
-      if (!cancelled) setAnnotating(false);
+      let failed = false;
+      await ensureAnnotations(meta, extracted, onPageAnnotations, (msg) => {
+        failed = true;
+        setError(
+          `Annotating paused (${msg}). It will retry as you turn pages — your highlights so far are saved.`,
+        );
+      });
+      if (!cancelled) {
+        setAnnotating(false);
+        if (!failed) setError(null);
+      }
     })();
     return () => {
       cancelled = true;
