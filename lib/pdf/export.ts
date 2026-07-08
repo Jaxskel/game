@@ -117,7 +117,7 @@ export async function exportAnnotatedPdf(args: {
           opacity: 0.8,
         });
       }
-      cursorY = y - blockLines * NOTE_LINE - 8;
+      cursorY = y - blockLines * NOTE_LINE - 14;
     }
   }
 
@@ -155,13 +155,16 @@ const ANSI_MAP: Record<string, string> = {
 };
 
 function sanitizeAnsi(s: string): string {
+  // Collapse ALL whitespace (incl. newlines — WinAnsi can't encode 0x0A).
   let out = "";
-  for (const c of s) {
+  for (const c of s.replace(/\s+/g, " ")) {
     if (ANSI_MAP[c] !== undefined) out += ANSI_MAP[c];
-    else if (c.charCodeAt(0) < 0x100) out += c;
+    else if (c.charCodeAt(0) >= 0x20 && c.charCodeAt(0) < 0x100) out += c;
+    else if (c.charCodeAt(0) < 0x20) out += " ";
     else {
       const d = c.normalize("NFKD").replace(/[̀-ͯ]/g, "");
-      out += d.charCodeAt(0) < 0x100 ? d : "?";
+      const code = d.charCodeAt(0);
+      out += code >= 0x20 && code < 0x100 ? d : "?";
     }
   }
   return out;

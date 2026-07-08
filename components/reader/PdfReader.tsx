@@ -30,7 +30,7 @@ import ColorLegend from "./ColorLegend";
 import PageNav from "./PageNav";
 import ExportButton from "@/components/ExportButton";
 
-const EXTERNAL_GUTTER = 160; // CSS px notes column for PDFs without a built-in gutter
+const EXTERNAL_GUTTER = 184; // CSS px notes column for PDFs without a built-in gutter
 
 export default function PdfReader({ bookId }: { bookId: string }) {
   const [book, setBook] = useState<BookRecord | null | undefined>(undefined);
@@ -238,8 +238,8 @@ export default function PdfReader({ bookId }: { bookId: string }) {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-3 pb-16 pt-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+    <main className="mx-auto max-w-5xl px-4 pb-20 pt-6">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-2xl border border-stone-200 bg-white px-4 py-3 shadow-sm">
         <Link
           href={`/book/${bookId}`}
           className="text-sm text-stone-500 underline underline-offset-4"
@@ -258,7 +258,7 @@ export default function PdfReader({ bookId }: { bookId: string }) {
           <select
             value={minImportance}
             onChange={(e) => setMinImportance(Number(e.target.value))}
-            className="rounded-lg border border-stone-300 bg-white px-2 py-1"
+            className="rounded-lg border border-stone-300 bg-white px-2 py-1.5"
           >
             <option value={1}>All notes</option>
             <option value={2}>Notable +</option>
@@ -267,7 +267,7 @@ export default function PdfReader({ bookId }: { bookId: string }) {
         </label>
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 px-1">
         <ColorLegend />
         {annotating && (
           <span
@@ -280,14 +280,14 @@ export default function PdfReader({ bookId }: { bookId: string }) {
       </div>
 
       {hasBuiltInGutter && (
-        <p className="mb-3 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-900">
+        <p className="mb-5 rounded-xl bg-blue-50 px-4 py-3 text-xs leading-relaxed text-blue-900">
           Page numbers may differ from your printed copy — use the quoted words
           and chapter headings to find each passage, then copy the highlight in.
         </p>
       )}
 
       {error && (
-        <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
+        <p className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-xs leading-relaxed text-red-800">
           {error}
         </p>
       )}
@@ -322,7 +322,7 @@ export default function PdfReader({ bookId }: { bookId: string }) {
         )}
       </div>
 
-      <div className="mx-auto mt-6 max-w-md">
+      <div className="mx-auto mt-8 max-w-md">
         <ExportButton
           onExport={exportPdf}
           onAnnotateAll={annotateAll}
