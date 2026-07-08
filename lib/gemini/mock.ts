@@ -68,7 +68,7 @@ const MOCK_CATEGORIES: CategoryKey[] = [
 const MOCK_NOTES: Record<CategoryKey, string> = {
   setting: "Establishes where and when this happens",
   character: "Notice how this reveals character",
-  figurative_language: "Vivid figurative language here",
+  figurative_language: "Simile - the sea sounds like an old man dreaming",
   conflict_event: "Key moment of conflict",
   theme: "Connects to a major theme",
 };

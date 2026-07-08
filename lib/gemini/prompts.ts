@@ -40,7 +40,9 @@ Known themes: ${context.themes.join(", ") || "unknown"}.
 For EACH page of text provided (each is labeled with its page number), select 2-6 passages worth highlighting. For each:
 - exact_quote: a VERBATIM substring of that page's text, 3-25 words. Copy it character-for-character, including punctuation. Never paraphrase, never join text across gaps.
 - category: setting | character | figurative_language | conflict_event | theme
-- margin_note: what a student would write in the margin, max 12 words, plain and insightful
+- margin_note: what a student would write in the margin, max 12 words, plain and insightful.
+  For figurative_language, NAME the device and what it does, e.g. "Metaphor - Juliet compared to the sun" or "Personification - the sea 'mutters'".
+  For other categories, say what the passage establishes or why it matters.
 - importance: 3 = essential, 2 = notable, 1 = nice detail
 - page: the page number the quote came from
 

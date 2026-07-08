@@ -77,15 +77,25 @@ export async function exportAnnotatedPdf(args: {
           : `${ann.margin_note} (near: "${ann.exact_quote.split(" ").slice(0, 5).join(" ")}...")`,
       );
       const lines = wrapText(noteText, bold, NOTE_SIZE, gutterW);
+      const blockLines = lines.length + 1; // + category label line
       let ly = y;
       // Category swatch
       page.drawRectangle({
         x: gutterX - 6,
-        y: y - (lines.length - 1) * NOTE_LINE - 2,
+        y: y - (blockLines - 1) * NOTE_LINE - 2,
         width: 3,
-        height: lines.length * NOTE_LINE,
+        height: blockLines * NOTE_LINE,
         color: rgb(r, g, b),
       });
+      // Category name in words (color alone shouldn't carry the meaning)
+      page.drawText(CATEGORIES[ann.category].label.toUpperCase(), {
+        x: gutterX,
+        y: ly,
+        size: 6.5,
+        font: bold,
+        color: rgb(r * 0.62, g * 0.62, b * 0.62),
+      });
+      ly -= NOTE_LINE - 3;
       for (const line of lines) {
         if (ly < 20) break;
         page.drawText(line, {
@@ -107,7 +117,7 @@ export async function exportAnnotatedPdf(args: {
           opacity: 0.8,
         });
       }
-      cursorY = y - lines.length * NOTE_LINE - 8;
+      cursorY = y - blockLines * NOTE_LINE - 8;
     }
   }
 

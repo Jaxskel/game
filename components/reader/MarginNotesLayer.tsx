@@ -10,6 +10,12 @@ const NOTE_W = 150;
 const NOTE_GAP = 8;
 const EST_LINE = 15;
 
+/** Darken the pastel highlight color so the label text stays readable. */
+function labelColor(category: keyof typeof CATEGORIES): string {
+  const [r, g, b] = CATEGORIES[category].rgb;
+  return `rgb(${Math.round(r * 160)}, ${Math.round(g * 160)}, ${Math.round(b * 160)})`;
+}
+
 /**
  * Margin notes stacked in the gutter at (roughly) the height of their
  * highlight, with SVG leader lines pointing at the highlighted words.
@@ -32,12 +38,12 @@ export default function MarginNotesLayer({
         return { ann, anchor, y: anchor ? anchor.top - 2 : 40 };
       })
       .sort((a, b) => a.y - b.y);
-    // Push overlapping notes down.
+    // Push overlapping notes down (labels add one extra line of height).
     let cursor = 8;
     for (const e of entries) {
       e.y = Math.max(e.y, cursor);
       const lines = Math.ceil((e.ann.margin_note.length / 22) as number) || 1;
-      cursor = e.y + lines * EST_LINE + 14 + NOTE_GAP;
+      cursor = e.y + lines * EST_LINE + 12 + 14 + NOTE_GAP;
     }
     return entries;
   }, [placed, viewport]);
@@ -79,6 +85,12 @@ export default function MarginNotesLayer({
             borderLeft: `4px solid ${CATEGORIES[ann.category].color}`,
           }}
         >
+          <span
+            className="block text-[9px] font-bold uppercase tracking-wide"
+            style={{ color: labelColor(ann.category) }}
+          >
+            {CATEGORIES[ann.category].label}
+          </span>
           {ann.margin_note}
           {ann.rects.length === 0 && (
             <span className="block text-[10px] font-normal text-stone-500">
