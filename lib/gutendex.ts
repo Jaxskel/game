@@ -14,9 +14,12 @@ const BROWSER_HEADERS = {
   "accept-language": "en-US,en;q=0.9",
 };
 
-/** The cache/epub text URL — verified reachable from datacenter IPs. */
+/**
+ * Gutenberg's official "best text" redirector — resolves to whichever
+ * plain-text file the book actually has (filenames vary per book).
+ */
 function gutenbergTextUrl(id: string | number): string {
-  return `https://www.gutenberg.org/cache/epub/${id}/pg${id}.txt.utf8`;
+  return `https://www.gutenberg.org/ebooks/${id}.txt.utf-8`;
 }
 
 /** Pick the best plain-text format URL from a Gutendex formats map. */
