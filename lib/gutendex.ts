@@ -7,6 +7,21 @@ interface GutendexBook {
   formats: Record<string, string>;
 }
 
+const BROWSER_HEADERS = {
+  "user-agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+  accept: "text/html,application/json;q=0.9,*/*;q=0.8",
+  "accept-language": "en-US,en;q=0.9",
+};
+
+/**
+ * Gutenberg's official "best text" redirector — resolves to whichever
+ * plain-text file the book actually has (filenames vary per book).
+ */
+function gutenbergTextUrl(id: string | number): string {
+  return `https://www.gutenberg.org/ebooks/${id}.txt.utf-8`;
+}
+
 /** Pick the best plain-text format URL from a Gutendex formats map. */
 function pickTextUrl(formats: Record<string, string>): string | null {
   const keys = Object.keys(formats);
@@ -18,15 +33,18 @@ function pickTextUrl(formats: Record<string, string>): string | null {
   return anyPlain ? formats[anyPlain] : null;
 }
 
-export async function searchGutenberg(
+async function searchViaGutendex(
   title: string,
   author: string,
 ): Promise<BookSourceCandidate[]> {
   const q = encodeURIComponent(`${title} ${author}`.trim());
   const res = await fetch(`https://gutendex.com/books?search=${q}`, {
-    signal: AbortSignal.timeout(15_000),
+    headers: BROWSER_HEADERS,
+    signal: AbortSignal.timeout(12_000),
   });
   if (!res.ok) return [];
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("json")) return []; // Cloudflare challenge page
   const data = (await res.json()) as { results?: GutendexBook[] };
   const out: BookSourceCandidate[] = [];
   for (const book of data.results ?? []) {
@@ -43,4 +61,66 @@ export async function searchGutenberg(
     if (out.length >= 5) break;
   }
   return out;
+}
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+/**
+ * Fallback: search gutenberg.org directly (their site allows datacenter IPs
+ * with browser headers, unlike Gutendex which sits behind a Cloudflare bot
+ * wall). Parses the stable "booklink" markup of the search results page.
+ */
+async function searchViaGutenbergSite(
+  title: string,
+  author: string,
+): Promise<BookSourceCandidate[]> {
+  const q = encodeURIComponent(`${title} ${author}`.trim());
+  const res = await fetch(
+    `https://www.gutenberg.org/ebooks/search/?query=${q}&submit_search=Search`,
+    { headers: BROWSER_HEADERS, signal: AbortSignal.timeout(15_000) },
+  );
+  if (!res.ok) return [];
+  const html = await res.text();
+  const out: BookSourceCandidate[] = [];
+  for (const m of html.matchAll(/<li class="booklink">([\s\S]*?)<\/li>/g)) {
+    const block = m[1];
+    const id = block.match(/href="\/ebooks\/(\d+)"/)?.[1];
+    if (!id) continue;
+    const bookTitle = block.match(/<span class="title">([^<]+)<\/span>/)?.[1];
+    const bookAuthor = block.match(/<span class="subtitle">([^<]+)<\/span>/)?.[1];
+    out.push({
+      provider: "gutenberg",
+      id,
+      title: decodeEntities((bookTitle ?? title).trim()),
+      author: decodeEntities((bookAuthor ?? author ?? "Unknown").trim()),
+      format: "text",
+      downloadUrl: gutenbergTextUrl(id),
+    });
+    if (out.length >= 5) break;
+  }
+  return out;
+}
+
+export async function searchGutenberg(
+  title: string,
+  author: string,
+): Promise<BookSourceCandidate[]> {
+  try {
+    const viaApi = await searchViaGutendex(title, author);
+    if (viaApi.length > 0) return viaApi;
+  } catch {
+    // fall through to site search
+  }
+  try {
+    return await searchViaGutenbergSite(title, author);
+  } catch {
+    return [];
+  }
 }

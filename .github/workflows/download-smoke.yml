@@ -1,0 +1,22 @@
+name: download-smoke
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "scripts/download-smoke.mjs"
+      - "scripts/live-smoke.ts"
+      - "lib/gutendex.ts"
+      - "lib/archive.ts"
+      - ".github/workflows/download-smoke.yml"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Probe book sources from a datacenter IP
+        run: npx -y tsx scripts/live-smoke.ts

@@ -36,7 +36,9 @@ function gutenbergFallbacks(url: URL): string[] {
   if (!m) return [];
   const id = m[1];
   return [
+    `https://www.gutenberg.org/ebooks/${id}.txt.utf-8`,
     `https://www.gutenberg.org/cache/epub/${id}/pg${id}.txt.utf8`,
+    `https://www.gutenberg.org/cache/epub/${id}/pg${id}.txt`,
     `https://www.gutenberg.org/files/${id}/${id}-0.txt`,
     `https://gutenberg.pglaf.org/cache/epub/${id}/pg${id}.txt.utf8`,
   ].filter((u) => u !== url.toString());
