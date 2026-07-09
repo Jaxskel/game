@@ -204,7 +204,13 @@ export default function PdfReader({ bookId }: { bookId: string }) {
           const group = missing.slice(i, i + 3);
           const batch: ExtractedPage[] = [];
           for (const q of group) batch.push(await getExtracted(q));
-          await ensureAnnotations(meta, batch, onPageAnnotations);
+          await ensureAnnotations(
+            meta,
+            batch,
+            onPageAnnotations,
+            undefined,
+            (msg) => setBusyText(`${msg} (${Math.min(done, total)}/${total} done)`),
+          );
           done += group.length;
           setBusyText(`Annotating pages… ${Math.min(done, total)}/${total}`);
         }
