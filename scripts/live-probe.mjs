@@ -5,9 +5,9 @@
  */
 const base = (process.env.LIVE_URL ?? "https://book-annatatir.vercel.app").replace(/\/$/, "");
 
-// 1x1 PNG — enough to verify the identify endpoint + Gemini key path.
+// Valid 1x1 PNG — enough to verify the identify endpoint + Gemini key path.
 const TINY_PNG =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==".repeat(2);
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
 let failures = 0;
 const ok = (name, cond, detail = "") => {
