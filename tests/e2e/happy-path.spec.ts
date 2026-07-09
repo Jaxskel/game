@@ -64,6 +64,13 @@ test("full flow: photo → identify → fetch → dashboard → highlighted read
   await page.getByTestId("next-page").click();
   await expect(canvas).toBeVisible();
 
+  // --- annotate every page: completes with the green notice ---
+  await page.getByTestId("annotate-all").click();
+  await expect(page.getByTestId("annotate-notice")).toContainText(
+    "Every page annotated",
+    { timeout: 120_000 },
+  );
+
   // --- export: downloads a real PDF ---
   const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
   await page.getByTestId("export-pdf").click();
