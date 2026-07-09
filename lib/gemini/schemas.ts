@@ -36,6 +36,27 @@ export const identifyResponseSchema: Schema = {
   required: ["identified", "title", "author", "confidence"],
 };
 
+// ---------- ocr-pages ----------
+
+export const ocrZ = z.object({
+  pages: z.array(z.object({ text: z.string() })),
+});
+
+export const ocrResponseSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    pages: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: { text: { type: Type.STRING } },
+        required: ["text"],
+      },
+    },
+  },
+  required: ["pages"],
+};
+
 // ---------- analyze-book ----------
 
 export const analysisZ = z.object({

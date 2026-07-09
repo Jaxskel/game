@@ -4,6 +4,7 @@ import { getPdfjs } from "./pdf/worker";
 import { extractPage, pageHasTextLayer } from "./pdf/extract";
 import { textToPdf } from "./pdf/textToPdf";
 import { EpubError, epubToText } from "./epub";
+import { compressImage } from "./image";
 import { saveBook } from "./db";
 import type { BookRecord, BookSourceCandidate } from "./types";
 
@@ -129,6 +130,75 @@ export async function ingestSource(
     createdAt: Date.now(),
     pageCount,
     generatedPdf: source.format === "text",
+  };
+  await saveBook(record, pdfBytes);
+  return record.bookId;
+}
+
+/**
+ * Build a book from photos of a physical book's pages: OCR each photo via
+ * the server (Gemini vision), then lay the text out as annotatable pages.
+ * The user's own paper copy becomes a digital study copy on their device.
+ */
+export async function ingestPhotos(
+  files: File[],
+  title: string,
+  author: string,
+  onStatus: (status: string) => void,
+): Promise<string> {
+  if (files.length === 0) throw new IngestError("No photos selected.");
+  if (files.length > 60) {
+    throw new IngestError("That's a lot of photos — 60 max per batch, please.");
+  }
+
+  const texts: string[] = [];
+  const BATCH = 3;
+  for (let i = 0; i < files.length; i += BATCH) {
+    const group = files.slice(i, i + BATCH);
+    onStatus(
+      `Reading your pages… ${Math.min(i + group.length, files.length)}/${files.length}`,
+    );
+    const images = await Promise.all(
+      group.map((f) => compressImage(f, 1600, 0.82)),
+    );
+    const res = await fetch("/api/ocr-pages", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ images }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new IngestError(
+        `Couldn't read pages ${i + 1}–${i + group.length}${
+          data?.error?.message ? ` — ${data.error.message}` : ""
+        }. Try retaking those photos with good light.`,
+      );
+    }
+    texts.push(...(data.pages ?? []));
+  }
+
+  const fullText = texts.join("\n\n");
+  if (fullText.replace(/\s+/g, "").length < 300) {
+    throw new IngestError(
+      "Couldn't read enough text from these photos — retake them closer and in good light.",
+    );
+  }
+
+  onStatus("Building your book pages…");
+  const pdf = await textToPdf(fullText, title || "My Book", author || "");
+  const pdfBytes = pdf.buffer.slice(
+    pdf.byteOffset,
+    pdf.byteOffset + pdf.byteLength,
+  ) as ArrayBuffer;
+  const pageCount = await assertTextLayer(pdfBytes);
+  const record: BookRecord = {
+    bookId: crypto.randomUUID(),
+    title: title || "My Book",
+    author,
+    provider: "upload",
+    createdAt: Date.now(),
+    pageCount,
+    generatedPdf: true,
   };
   await saveBook(record, pdfBytes);
   return record.bookId;

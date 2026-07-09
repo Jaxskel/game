@@ -2,6 +2,7 @@
 
 import type { BookSourceCandidate } from "@/lib/types";
 import UploadDropzone from "./UploadDropzone";
+import SnapPages from "./SnapPages";
 
 export default function SourcePicker({
   sources,
@@ -9,6 +10,7 @@ export default function SourcePicker({
   status,
   onPick,
   onUpload,
+  onSnapPages,
   onBack,
 }: {
   sources: BookSourceCandidate[];
@@ -16,6 +18,7 @@ export default function SourcePicker({
   status: string | null;
   onPick: (s: BookSourceCandidate) => void;
   onUpload: (file: File) => void;
+  onSnapPages: (files: File[]) => void;
   onBack: () => void;
 }) {
   const busy = status !== null;
@@ -72,6 +75,8 @@ export default function SourcePicker({
         </p>
         <UploadDropzone onFile={onUpload} disabled={busy} />
       </div>
+
+      <SnapPages onBuild={onSnapPages} disabled={busy} />
 
       {status && (
         <div

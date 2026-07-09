@@ -57,6 +57,17 @@ export function mockAnalysis(title: string, author: string): BookAnalysis {
   };
 }
 
+/** Deterministic OCR fixture — one paragraph-y "page" per image. */
+export function mockOcr(count: number): string[] {
+  return Array.from({ length: count }, (_, i) =>
+    Array.from(
+      { length: 4 },
+      (_, j) =>
+        `Photographed page ${i + 1}, paragraph ${j + 1}. The lantern keeper watched the cold grey sea from the tower window while the village of Bellwater slept below, and the light turned slowly like a small stubborn sun that refused the storm.`,
+    ).join("\n\n"),
+  );
+}
+
 const MOCK_CATEGORIES: CategoryKey[] = [
   "setting",
   "character",

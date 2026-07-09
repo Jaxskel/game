@@ -121,3 +121,5 @@ ok(
 
 console.log(failures === 0 ? "\n🎉 ALL LIVE FEATURES VERIFIED" : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);
+
+// verification run trigger
