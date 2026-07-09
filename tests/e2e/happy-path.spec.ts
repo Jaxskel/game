@@ -78,6 +78,33 @@ test("full flow: photo → identify → fetch → dashboard → highlighted read
   expect(head).toBe("%PDF-");
 });
 
+test("snap-pages path: photos of a paper book become an annotated book", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByTestId("skip-photo").click();
+  await page.getByTestId("title-input").fill("Long Way Down");
+  await page.getByTestId("author-input").fill("Jason Reynolds");
+  await page.getByTestId("confirm-book").click();
+
+  // Two "page photos" (mock OCR returns fixture text per image)
+  await page.setInputFiles('[data-testid="page-photos-input"]', [
+    { name: "p1.png", mimeType: "image/png", buffer: TINY_PNG },
+    { name: "p2.png", mimeType: "image/png", buffer: TINY_PNG },
+  ]);
+  await expect(page.getByTestId("photo-count")).toHaveText("2 pages ready");
+  await page.getByTestId("build-from-photos").click();
+
+  await page.waitForURL(/\/book\/[a-f0-9-]+$/, { timeout: 60_000 });
+  await expect(page.getByTestId("analysis-dashboard")).toBeVisible();
+
+  await page.getByTestId("open-reader").click();
+  await expect(page.getByTestId("pdf-canvas")).toBeVisible();
+  await expect(page.getByTestId("highlight-rect").first()).toBeVisible({
+    timeout: 60_000,
+  });
+});
+
 test("upload path: EPUB ebook gets converted and highlighted", async ({ page }) => {
   const { makeEpub } = await import("../fixtures/makeEpub");
   const epubBytes = makeEpub();

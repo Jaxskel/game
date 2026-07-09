@@ -6,7 +6,12 @@ import CameraCapture from "@/components/CameraCapture";
 import BookConfirmCard from "@/components/BookConfirmCard";
 import SourcePicker from "@/components/SourcePicker";
 import { compressImage } from "@/lib/image";
-import { IngestError, ingestSource, ingestUpload } from "@/lib/ingest";
+import {
+  IngestError,
+  ingestPhotos,
+  ingestSource,
+  ingestUpload,
+} from "@/lib/ingest";
 import type { BookSourceCandidate, IdentifyResult } from "@/lib/types";
 
 type Step = "capture" | "confirm" | "source";
@@ -102,6 +107,12 @@ export default function Home() {
     [run, title, author],
   );
 
+  const onSnapPages = useCallback(
+    (files: File[]) =>
+      run(() => ingestPhotos(files, title, author, setIngestStatus)),
+    [run, title, author],
+  );
+
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-5 py-10">
       {step === "capture" && (
@@ -134,6 +145,7 @@ export default function Home() {
           status={ingestStatus}
           onPick={onPick}
           onUpload={onUpload}
+          onSnapPages={onSnapPages}
           onBack={() => setStep("confirm")}
         />
       )}

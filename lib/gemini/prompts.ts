@@ -1,3 +1,9 @@
+export const OCR_PROMPT = `Each image is a photo of a page from a printed book. Transcribe the body text of each page EXACTLY as printed — every word, all punctuation, in reading order.
+- Preserve paragraph breaks as blank lines. For poetry/verse, preserve line breaks.
+- Skip page numbers, running headers/footers, and anything that isn't body text.
+- If a page is blurry or unreadable, transcribe what you can and continue.
+Return one entry per image, in the same order as the images.`;
+
 export const IDENTIFY_PROMPT = `You are looking at a photo of a book (usually its cover, possibly a spine or title page).
 Identify the book. Return:
 - identified: true only if you can read or confidently recognize a real published book

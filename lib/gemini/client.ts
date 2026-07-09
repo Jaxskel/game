@@ -7,17 +7,20 @@ import {
   annotationsResponseSchema,
   identifyResultZ,
   identifyResponseSchema,
+  ocrZ,
+  ocrResponseSchema,
 } from "./schemas";
 import {
   ANALYZE_FULL_SCOPE,
   ANALYZE_REDUCE_SCOPE,
   IDENTIFY_PROMPT,
+  OCR_PROMPT,
   analyzeChunkScope,
   analyzePrompt,
   annotatePrompt,
 } from "./prompts";
 import type { Annotation, BookAnalysis, IdentifyResult } from "@/lib/types";
-import { mockAnalysis, mockAnnotate, mockIdentify } from "./mock";
+import { mockAnalysis, mockAnnotate, mockIdentify, mockOcr } from "./mock";
 
 const MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
@@ -93,6 +96,23 @@ export async function identifyBookFromImage(
     identifyResponseSchema,
   );
   return identifyResultZ.parse(raw) as IdentifyResult;
+}
+
+export async function ocrPageImages(
+  images: { base64: string; mimeType: string }[],
+): Promise<string[]> {
+  if (mockMode()) return mockOcr(images.length);
+  const raw = await generateJson(
+    [
+      ...images.map((img) => ({
+        inlineData: { mimeType: img.mimeType, data: img.base64 },
+      })),
+      { text: OCR_PROMPT },
+    ],
+    ocrResponseSchema,
+  );
+  const parsed = ocrZ.parse(raw);
+  return parsed.pages.map((p) => p.text);
 }
 
 export async function analyzeBookText(args: {
