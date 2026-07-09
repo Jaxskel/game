@@ -63,9 +63,11 @@ export default function SourcePicker({
 
       <div className="mt-2">
         <p className="mb-2 text-sm font-medium text-stone-700">
-          Have the exact edition you own?{" "}
+          Own the book as a PDF or EPUB ebook?{" "}
           <span className="text-stone-500">
-            Upload it — highlights will match your page numbers exactly.
+            Upload it — a PDF&apos;s highlights match your page numbers
+            exactly. (Kindle/Apple books are DRM-locked and can&apos;t be
+            opened.)
           </span>
         </p>
         <UploadDropzone onFile={onUpload} disabled={busy} />

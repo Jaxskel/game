@@ -35,7 +35,7 @@ export default function UploadDropzone({
       <input
         ref={inputRef}
         type="file"
-        accept="application/pdf"
+        accept="application/pdf,application/epub+zip,.pdf,.epub"
         className="hidden"
         data-testid="pdf-upload-input"
         onChange={(e) => {
@@ -44,7 +44,7 @@ export default function UploadDropzone({
           e.target.value = "";
         }}
       />
-      📄 Tap to choose a PDF (or drag one here)
+      📄 Tap to choose a PDF or EPUB ebook (or drag one here)
     </div>
   );
 }

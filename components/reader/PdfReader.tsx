@@ -58,7 +58,8 @@ export default function PdfReader({ bookId }: { bookId: string }) {
   const [containerW, setContainerW] = useState(0);
   const extractCache = useRef(new Map<number, ExtractedPage>());
 
-  const hasBuiltInGutter = book?.provider === "gutenberg";
+  const hasBuiltInGutter =
+    book?.generatedPdf ?? book?.provider === "gutenberg";
 
   // ---- load book, analysis, pdf ----
   useEffect(() => {

@@ -24,6 +24,9 @@ export interface BookRecord {
   provider: Provider;
   createdAt: number;
   pageCount: number;
+  /** True when we generated the PDF ourselves (text/EPUB sources) — the
+   * pages then have a built-in wide margin gutter for notes. */
+  generatedPdf?: boolean;
 }
 
 export interface IdentifyResult {

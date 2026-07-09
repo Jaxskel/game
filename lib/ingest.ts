@@ -3,6 +3,7 @@
 import { getPdfjs } from "./pdf/worker";
 import { extractPage, pageHasTextLayer } from "./pdf/extract";
 import { textToPdf } from "./pdf/textToPdf";
+import { EpubError, epubToText } from "./epub";
 import { saveBook } from "./db";
 import type { BookRecord, BookSourceCandidate } from "./types";
 
@@ -127,12 +128,13 @@ export async function ingestSource(
     provider: source.provider,
     createdAt: Date.now(),
     pageCount,
+    generatedPdf: source.format === "text",
   };
   await saveBook(record, pdfBytes);
   return record.bookId;
 }
 
-/** Store a user-uploaded PDF as a ready-to-read book. */
+/** Store a user-uploaded PDF or (DRM-free) EPUB as a ready-to-read book. */
 export async function ingestUpload(
   file: File,
   title: string,
@@ -140,19 +142,49 @@ export async function ingestUpload(
   onStatus: (status: string) => void,
 ): Promise<string> {
   if (file.size > 50 * 1024 * 1024) {
-    throw new IngestError("That PDF is over 50MB — try a smaller file.");
+    throw new IngestError("That file is over 50MB — try a smaller one.");
   }
-  onStatus("Reading your PDF…");
-  const bytes = await file.arrayBuffer();
-  const pageCount = await assertTextLayer(bytes);
+  const isEpub =
+    /\.epub$/i.test(file.name) || file.type === "application/epub+zip";
+
+  let pdfBytes: ArrayBuffer;
+  let bookTitle = title || file.name.replace(/\.(pdf|epub)$/i, "");
+  let bookAuthor = author;
+
+  if (isEpub) {
+    onStatus("Opening your ebook…");
+    const raw = await file.arrayBuffer();
+    let extracted;
+    try {
+      extracted = epubToText(raw);
+    } catch (e) {
+      throw new IngestError(
+        e instanceof EpubError ? e.message : "Couldn't read this EPUB file.",
+      );
+    }
+    bookTitle = title || extracted.title || bookTitle;
+    bookAuthor = author || extracted.author || "";
+    onStatus("Turning your ebook into clean pages…");
+    const pdf = await textToPdf(extracted.text, bookTitle, bookAuthor);
+    pdfBytes = pdf.buffer.slice(
+      pdf.byteOffset,
+      pdf.byteOffset + pdf.byteLength,
+    ) as ArrayBuffer;
+  } else {
+    onStatus("Reading your PDF…");
+    pdfBytes = await file.arrayBuffer();
+  }
+
+  const pageCount = await assertTextLayer(pdfBytes);
   const record: BookRecord = {
     bookId: crypto.randomUUID(),
-    title: title || file.name.replace(/\.pdf$/i, ""),
-    author,
+    title: bookTitle,
+    author: bookAuthor,
     provider: "upload",
     createdAt: Date.now(),
     pageCount,
+    generatedPdf: isEpub,
   };
-  await saveBook(record, bytes);
+  await saveBook(record, pdfBytes);
   return record.bookId;
 }
