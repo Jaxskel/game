@@ -78,6 +78,32 @@ test("full flow: photo → identify → fetch → dashboard → highlighted read
   expect(head).toBe("%PDF-");
 });
 
+test("upload path: EPUB ebook gets converted and highlighted", async ({ page }) => {
+  const { makeEpub } = await import("../fixtures/makeEpub");
+  const epubBytes = makeEpub();
+
+  await page.goto("/");
+  await page.getByTestId("skip-photo").click();
+  await page.getByTestId("title-input").fill("The Lantern Keeper");
+  await page.getByTestId("author-input").fill("A. Storyteller");
+  await page.getByTestId("confirm-book").click();
+
+  await page.setInputFiles('[data-testid="pdf-upload-input"]', {
+    name: "my-ebook.epub",
+    mimeType: "application/epub+zip",
+    buffer: Buffer.from(epubBytes),
+  });
+
+  await page.waitForURL(/\/book\/[a-f0-9-]+$/, { timeout: 60_000 });
+  await expect(page.getByTestId("analysis-dashboard")).toBeVisible();
+
+  await page.getByTestId("open-reader").click();
+  await expect(page.getByTestId("pdf-canvas")).toBeVisible();
+  await expect(page.getByTestId("highlight-rect").first()).toBeVisible({
+    timeout: 60_000,
+  });
+});
+
 test("upload path: user's own PDF gets highlighted", async ({ page }) => {
   const pdfBytes = await textToPdf(
     fixtureBookText(),
