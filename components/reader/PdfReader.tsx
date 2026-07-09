@@ -15,7 +15,13 @@ import { matchQuote } from "@/lib/pdf/match";
 import { GUTTER_X } from "@/lib/pdf/textToPdf";
 import { exportAnnotatedPdf, downloadBytes } from "@/lib/pdf/export";
 import { ensureAnnotations, type AnnotateMeta } from "@/lib/annotate";
-import { getAllAnnotations, getAnalysis, getBook, getPdfBytes } from "@/lib/db";
+import {
+  getAllAnnotations,
+  getAnalysis,
+  getBook,
+  getPageAnnotations,
+  getPdfBytes,
+} from "@/lib/db";
 import type {
   Annotation,
   BookAnalysis,
@@ -45,6 +51,7 @@ export default function PdfReader({ bookId }: { bookId: string }) {
   const [annotating, setAnnotating] = useState(false);
   const [minImportance, setMinImportance] = useState(1);
   const [busyText, setBusyText] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -179,22 +186,48 @@ export default function PdfReader({ bookId }: { bookId: string }) {
   // ---- export ----
   const annotateAll = useCallback(async () => {
     if (!doc || !meta) return;
-    setBusyText("Annotating every page…");
+    setNotice(null);
+    setError(null);
+    const total = doc.numPages;
+    setBusyText(`Annotating pages… 0/${total}`);
     try {
-      for (let p = 1; p <= doc.numPages; p += 5) {
-        const batch: ExtractedPage[] = [];
-        for (let q = p; q < Math.min(p + 5, doc.numPages + 1); q++) {
-          batch.push(await getExtracted(q));
+      // Up to two passes: pages that fail (rate limits, network blips) are
+      // retried once everything else has been processed.
+      for (let pass = 0; pass < 2; pass++) {
+        const missing: number[] = [];
+        for (let p = 1; p <= total; p++) {
+          if (!(await getPageAnnotations(bookId, p))) missing.push(p);
         }
-        await ensureAnnotations(meta, batch, onPageAnnotations);
-        setBusyText(
-          `Annotating every page… ${Math.min(p + 4, doc.numPages)}/${doc.numPages}`,
-        );
+        if (missing.length === 0) break;
+        let done = total - missing.length;
+        for (let i = 0; i < missing.length; i += 3) {
+          const group = missing.slice(i, i + 3);
+          const batch: ExtractedPage[] = [];
+          for (const q of group) batch.push(await getExtracted(q));
+          await ensureAnnotations(
+            meta,
+            batch,
+            onPageAnnotations,
+            undefined,
+            (msg) => setBusyText(`${msg} (${Math.min(done, total)}/${total} done)`),
+          );
+          done += group.length;
+          setBusyText(`Annotating pages… ${Math.min(done, total)}/${total}`);
+        }
       }
+      let remaining = 0;
+      for (let p = 1; p <= total; p++) {
+        if (!(await getPageAnnotations(bookId, p))) remaining++;
+      }
+      setNotice(
+        remaining === 0
+          ? `✅ Every page annotated (${total} pages). Ready to download.`
+          : `Annotated ${total - remaining} of ${total} pages — ${remaining} couldn't finish yet (usually rate limits). Wait a minute and tap "Annotate every page" again to complete them.`,
+      );
     } finally {
       setBusyText(null);
     }
-  }, [doc, meta, getExtracted, onPageAnnotations]);
+  }, [doc, meta, bookId, getExtracted, onPageAnnotations]);
 
   const exportPdf = useCallback(async () => {
     if (!doc || !book || !bytes) return;
@@ -296,6 +329,15 @@ export default function PdfReader({ bookId }: { bookId: string }) {
       {error && (
         <p className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-xs leading-relaxed text-red-800">
           {error}
+        </p>
+      )}
+
+      {notice && (
+        <p
+          className="mb-5 rounded-xl bg-green-50 px-4 py-3 text-xs leading-relaxed text-green-900"
+          data-testid="annotate-notice"
+        >
+          {notice}
         </p>
       )}
 
