@@ -17,6 +17,13 @@ Produce a thorough but student-friendly analysis:
 - conflict: the central conflict type (e.g. "character vs. society") and description
 - themes: 3-6 major themes with explanations
 - figurativeLanguage: 4-8 notable examples (metaphor, simile, personification, symbolism...) with the quoted example text and what it means
+
+IF THE TEXT IS NONFICTION (a textbook, essay collection, history, civics or science book), adapt each field sensibly instead of forcing a story structure:
+- characters = the key people, groups, or institutions discussed (role: protagonist for central figures, supporting for others)
+- plotPoints = the main ideas/sections in the order presented (use stages loosely: exposition = foundations, climax = the most important concept)
+- conflict = the central question, debate, or tension the book addresses
+- themes = the big takeaways a student should remember
+- figurativeLanguage = notable vocabulary, definitions, or vivid examples worth memorizing
 Base everything strictly on the provided text.`;
 }
 
@@ -49,5 +56,12 @@ For EACH page of text provided (each is labeled with its page number), select 2-
 Rules:
 - Quotes MUST appear character-for-character in that page's provided text.
 - Skip pages that are front matter, tables of contents, or license text (return no annotations for them).
-- Prefer variety across categories when the page allows it.`;
+- Prefer variety across categories when the page allows it.
+- IF THE PAGE IS NONFICTION (textbook, history, civics, science), map the categories sensibly:
+  setting = context/background facts (dates, places, circumstances);
+  character = key people, groups, or institutions;
+  figurative_language = key vocabulary, definitions, or vivid examples;
+  conflict_event = important events, turning points, or debated issues;
+  theme = main ideas a student must remember.
+  Margin notes should read like study notes ("Definition: ...", "Key date", "Main idea of this section").`;
 }
