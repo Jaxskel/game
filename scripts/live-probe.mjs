@@ -119,7 +119,19 @@ ok(
   `status ${idRes.status}, identified=${idData.identified}`,
 );
 
+// 7. Page-photo OCR endpoint (snap-pages mode)
+const ocrRes = await fetch(`${base}/api/ocr-pages`, {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ images: [{ base64: TINY_PNG, mimeType: "image/png" }] }),
+  signal: AbortSignal.timeout(60_000),
+});
+const ocrData = await ocrRes.json().catch(() => ({}));
+ok(
+  "page-photo OCR endpoint",
+  ocrRes.status === 200 && Array.isArray(ocrData.pages),
+  `status ${ocrRes.status}, pages=${Array.isArray(ocrData.pages) ? ocrData.pages.length : "?"}`,
+);
+
 console.log(failures === 0 ? "\n🎉 ALL LIVE FEATURES VERIFIED" : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);
-
-// verification run trigger
