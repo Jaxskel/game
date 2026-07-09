@@ -8,46 +8,60 @@ import { textToPdf } from "../lib/pdf/textToPdf";
 
 const BASE = (process.env.LIVE_URL ?? "https://book-annatatir.vercel.app").replace(/\/$/, "");
 
-async function main() {
-  const bookUrl = "https://www.gutenberg.org/ebooks/1513.txt.utf-8";
-  console.log("fetching real book text via live proxy…");
+// Books with different formats/character sets: a play, 19th-century prose
+// with curly quotes, and a long novel with unusual punctuation.
+const BOOKS: [string, string, string][] = [
+  ["1513", "Romeo and Juliet", "William Shakespeare"],
+  ["1342", "Pride and Prejudice", "Jane Austen"],
+  ["2701", "Moby Dick", "Herman Melville"],
+];
+
+async function testBook(id: string, title: string, author: string) {
+  const bookUrl = `https://www.gutenberg.org/ebooks/${id}.txt.utf-8`;
   const res = await fetch(
     `${BASE}/api/fetch-book?url=${encodeURIComponent(bookUrl)}`,
-    { signal: AbortSignal.timeout(60_000) },
+    { signal: AbortSignal.timeout(90_000) },
   );
   if (!res.ok) {
-    console.log(`FETCH FAILED: ${res.status} ${(await res.text()).slice(0, 300)}`);
-    process.exit(1);
+    console.log(`❌ ${title}: fetch failed ${res.status}`);
+    return false;
   }
   const text = await res.text();
-  console.log(`got ${text.length} chars`);
 
-  console.log("running textToPdf on the real text…");
   let pdfBytes: Uint8Array;
   try {
-    pdfBytes = await textToPdf(text, "Romeo and Juliet", "William Shakespeare");
+    pdfBytes = await textToPdf(text, title, author);
   } catch (e) {
-    console.log(`TEXT-TO-PDF THREW: ${e instanceof Error ? e.message : e}`);
-    process.exit(1);
+    console.log(`❌ ${title}: textToPdf threw: ${e instanceof Error ? e.message : e}`);
+    return false;
   }
-  console.log(`pdf bytes: ${pdfBytes.byteLength}`);
 
-  console.log("extracting text layer with pdf.js…");
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const doc = await pdfjs.getDocument({ data: pdfBytes.slice(0) }).promise;
-  console.log(`pages: ${doc.numPages}`);
   const page3 = await doc.getPage(3);
   const content = await page3.getTextContent();
   const pageText = content.items
     .map((i) => ("str" in i ? (i as { str: string }).str : ""))
     .join(" ");
-  console.log(`page 3 text head: ${pageText.slice(0, 120)}`);
+  const pages = doc.numPages;
   await doc.loadingTask.destroy();
-  if (doc.numPages < 20 || pageText.replace(/\s+/g, "").length < 40) {
-    console.log("FAIL: pdf too small or text layer missing");
+  const ok = pages >= 20 && pageText.replace(/\s+/g, "").length >= 40;
+  console.log(
+    `${ok ? "✅" : "❌"} ${title}: ${text.length} chars → ${pages} pages, text layer ${ok ? "OK" : "MISSING"}`,
+  );
+  return ok;
+}
+
+async function main() {
+  let failures = 0;
+  for (const [id, title, author] of BOOKS) {
+    if (!(await testBook(id, title, author))) failures++;
+  }
+  if (failures > 0) {
+    console.log(`${failures} BOOK(S) FAILED INGEST`);
     process.exit(1);
   }
-  console.log("FULL INGEST PIPELINE OK on real book text");
+  console.log("FULL INGEST PIPELINE OK on all sample books");
 }
 
 main().catch((e) => {

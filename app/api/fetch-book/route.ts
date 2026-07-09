@@ -148,7 +148,10 @@ export async function GET(req: NextRequest) {
   return new NextResponse(capped, {
     headers: {
       "content-type": contentType,
-      "cache-control": "public, max-age=31536000, immutable",
+      // s-maxage → Vercel's CDN caches the book after the first download, so
+      // repeat requests never hit gutenberg.org/archive.org again (and their
+      // rate limits can't affect us).
+      "cache-control": "public, max-age=3600, s-maxage=31536000, immutable",
     },
   });
 }

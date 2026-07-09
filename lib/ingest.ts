@@ -38,17 +38,34 @@ async function assertTextLayer(bytes: ArrayBuffer): Promise<number> {
 }
 
 async function fetchViaProxy(url: string, onProgress?: (pct: number | null) => void) {
-  const res = await fetch(`/api/fetch-book?url=${encodeURIComponent(url)}`);
-  if (!res.ok) {
-    let detail = "";
+  // Book sites rate-limit bursts — retry the download a couple of times
+  // before giving up.
+  let res: Response | null = null;
+  let detail = "";
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      onProgress?.(null);
+      await new Promise((r) => setTimeout(r, 3000 * attempt));
+    }
+    try {
+      res = await fetch(`/api/fetch-book?url=${encodeURIComponent(url)}`);
+    } catch {
+      res = null;
+      detail = " — network error";
+      continue;
+    }
+    if (res.ok) break;
     try {
       const data = await res.json();
       if (data?.error?.message) detail = ` — ${data.error.message}`;
     } catch {
       // non-JSON error body
     }
+    if (res.status < 500) break; // our own 4xx — retrying won't help
+  }
+  if (!res || !res.ok) {
     throw new IngestError(
-      `Download failed (${res.status}${detail}). Try another source below, or upload your own PDF.`,
+      `Download failed (${res?.status ?? "network"}${detail}). Try again in a minute, pick another source below, or upload your own PDF.`,
     );
   }
   const total = Number(res.headers.get("content-length")) || 0;

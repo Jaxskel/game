@@ -19,7 +19,9 @@ jobs:
           node-version: 22
       - name: Probe the deployed app's API endpoints
         run: node scripts/live-probe.mjs
+      - name: Multi-book search + download sweep
+        run: node scripts/book-sweep.mjs
       - name: Install deps
         run: npm ci
-      - name: Full ingest pipeline on real book text
+      - name: Full ingest pipeline on real book texts
         run: npx -y tsx scripts/live-ingest-test.ts
