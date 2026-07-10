@@ -112,6 +112,33 @@ test("snap-pages path: photos of a paper book become an annotated book", async (
   });
 });
 
+test("snap-video path: a page-flip video becomes an annotated book", async ({
+  page,
+}) => {
+  const { makeFlipVideo } = await import("../fixtures/makeFlipVideo");
+  await page.goto("/");
+  const videoBytes = await makeFlipVideo(page); // generated in-browser
+
+  await page.getByTestId("skip-photo").click();
+  await page.getByTestId("title-input").fill("My Paper Book");
+  await page.getByTestId("confirm-book").click();
+
+  await page.setInputFiles('[data-testid="page-video-input"]', {
+    name: "flip.webm",
+    mimeType: "video/webm",
+    buffer: videoBytes,
+  });
+
+  await page.waitForURL(/\/book\/[a-f0-9-]+$/, { timeout: 90_000 });
+  await expect(page.getByTestId("analysis-dashboard")).toBeVisible();
+
+  await page.getByTestId("open-reader").click();
+  await expect(page.getByTestId("pdf-canvas")).toBeVisible();
+  await expect(page.getByTestId("highlight-rect").first()).toBeVisible({
+    timeout: 60_000,
+  });
+});
+
 test("upload path: EPUB ebook gets converted and highlighted", async ({ page }) => {
   const { makeEpub } = await import("../fixtures/makeEpub");
   const epubBytes = makeEpub();

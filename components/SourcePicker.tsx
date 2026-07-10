@@ -11,6 +11,7 @@ export default function SourcePicker({
   onPick,
   onUpload,
   onSnapPages,
+  onSnapVideo,
   onBack,
 }: {
   sources: BookSourceCandidate[];
@@ -19,6 +20,7 @@ export default function SourcePicker({
   onPick: (s: BookSourceCandidate) => void;
   onUpload: (file: File) => void;
   onSnapPages: (files: File[]) => void;
+  onSnapVideo: (file: File) => void;
   onBack: () => void;
 }) {
   const busy = status !== null;
@@ -76,7 +78,7 @@ export default function SourcePicker({
         <UploadDropzone onFile={onUpload} disabled={busy} />
       </div>
 
-      <SnapPages onBuild={onSnapPages} disabled={busy} />
+      <SnapPages onBuild={onSnapPages} onVideo={onSnapVideo} disabled={busy} />
 
       {status && (
         <div

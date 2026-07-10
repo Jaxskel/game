@@ -113,6 +113,17 @@ export default function Home() {
     [run, title, author],
   );
 
+  const onSnapVideo = useCallback(
+    (file: File) =>
+      run(async () => {
+        setIngestStatus("Opening your video…");
+        const { extractPageFrames } = await import("@/lib/video");
+        const frames = await extractPageFrames(file, setIngestStatus);
+        return ingestPhotos(frames, title, author, setIngestStatus);
+      }),
+    [run, title, author],
+  );
+
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-5 py-10">
       {step === "capture" && (
@@ -146,6 +157,7 @@ export default function Home() {
           onPick={onPick}
           onUpload={onUpload}
           onSnapPages={onSnapPages}
+          onSnapVideo={onSnapVideo}
           onBack={() => setStep("confirm")}
         />
       )}
