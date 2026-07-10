@@ -8,12 +8,15 @@ import { useRef, useState } from "react";
  */
 export default function SnapPages({
   onBuild,
+  onVideo,
   disabled,
 }: {
   onBuild: (files: File[]) => void;
+  onVideo: (file: File) => void;
   disabled?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<File[]>([]);
 
   return (
@@ -72,6 +75,35 @@ export default function SnapPages({
           Build my book from {photos.length} photo{photos.length === 1 ? "" : "s"} →
         </button>
       )}
+
+      <div className="mt-4 border-t border-stone-100 pt-3">
+        <p className="text-sm text-stone-500">
+          🎥 Or <span className="font-medium text-stone-700">record a
+          page-flip video</span> — flip slowly, holding each page still for a
+          moment, and I&apos;ll grab one clear shot of every page.
+        </p>
+        <input
+          ref={videoRef}
+          type="file"
+          accept="video/*"
+          capture="environment"
+          className="hidden"
+          data-testid="page-video-input"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onVideo(file);
+            e.target.value = "";
+          }}
+        />
+        <button
+          onClick={() => videoRef.current?.click()}
+          disabled={disabled}
+          data-testid="record-video"
+          className="mt-2 rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 active:scale-95 transition disabled:opacity-50"
+        >
+          🎥 Record / choose a page-flip video
+        </button>
+      </div>
     </div>
   );
 }
