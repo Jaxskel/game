@@ -3,6 +3,7 @@
 import type { BookSourceCandidate } from "@/lib/types";
 import UploadDropzone from "./UploadDropzone";
 import SnapPages from "./SnapPages";
+import YouTubeImport from "./YouTubeImport";
 
 export default function SourcePicker({
   sources,
@@ -12,6 +13,7 @@ export default function SourcePicker({
   onUpload,
   onSnapPages,
   onSnapVideo,
+  onYouTube,
   onBack,
 }: {
   sources: BookSourceCandidate[];
@@ -21,6 +23,7 @@ export default function SourcePicker({
   onUpload: (file: File) => void;
   onSnapPages: (files: File[]) => void;
   onSnapVideo: (file: File) => void;
+  onYouTube: (url: string) => void;
   onBack: () => void;
 }) {
   const busy = status !== null;
@@ -79,6 +82,8 @@ export default function SourcePicker({
       </div>
 
       <SnapPages onBuild={onSnapPages} onVideo={onSnapVideo} disabled={busy} />
+
+      <YouTubeImport onImport={onYouTube} disabled={busy} />
 
       {status && (
         <div

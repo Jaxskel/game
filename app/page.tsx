@@ -11,6 +11,7 @@ import {
   ingestPhotos,
   ingestSource,
   ingestUpload,
+  ingestYouTube,
 } from "@/lib/ingest";
 import type { BookSourceCandidate, IdentifyResult } from "@/lib/types";
 
@@ -124,6 +125,12 @@ export default function Home() {
     [run, title, author],
   );
 
+  const onYouTube = useCallback(
+    (url: string) =>
+      run(() => ingestYouTube(url, title, author, setIngestStatus)),
+    [run, title, author],
+  );
+
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-5 py-10">
       {step === "capture" && (
@@ -158,6 +165,7 @@ export default function Home() {
           onUpload={onUpload}
           onSnapPages={onSnapPages}
           onSnapVideo={onSnapVideo}
+          onYouTube={onYouTube}
           onBack={() => setStep("confirm")}
         />
       )}

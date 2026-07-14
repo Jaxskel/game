@@ -133,9 +133,29 @@ ok(
   `status ${ocrRes.status}, pages=${Array.isArray(ocrData.pages) ? ocrData.pages.length : "?"}`,
 );
 
+// 8. YouTube transcription endpoint — Gemini watches a real public video.
+//    "Me at the zoo" (first YouTube video, 19s, always public) — its narration
+//    mentions elephants and their long trunks, so a real transcription contains
+//    "elephant" or "trunk".
+const ytRes = await fetch(`${base}/api/youtube`, {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ url: "https://www.youtube.com/watch?v=jNQXAC9IVRw" }),
+  signal: AbortSignal.timeout(120_000),
+});
+const ytData = await ytRes.json().catch(() => ({}));
+const ytText = (ytData.text ?? "").toLowerCase();
+ok(
+  "YouTube transcription endpoint",
+  ytRes.status === 200 &&
+    typeof ytData.text === "string" &&
+    (ytText.includes("elephant") || ytText.includes("trunk") || ytText.length > 15),
+  ytRes.status === 200
+    ? `${(ytData.text ?? "").length} chars: "${(ytData.text ?? "").slice(0, 60).replace(/\s+/g, " ")}"`
+    : `status ${ytRes.status}: ${JSON.stringify(ytData).slice(0, 200)}`,
+);
+
 console.log(failures === 0 ? "\n🎉 ALL LIVE FEATURES VERIFIED" : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);
 
-// verification run trigger
-
-// full verification run f9fb490
+// re-run live verification 1784067911

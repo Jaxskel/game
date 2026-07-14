@@ -136,6 +136,57 @@ export async function ingestSource(
 }
 
 /**
+ * Build a book from a YouTube video — audiobook (read aloud) or a page/screen
+ * video (text shown). Gemini transcribes it; we lay the text out as pages.
+ */
+export async function ingestYouTube(
+  url: string,
+  title: string,
+  author: string,
+  onStatus: (status: string) => void,
+): Promise<string> {
+  onStatus("Watching the video & transcribing… (this can take a minute)");
+  const res = await fetch("/api/youtube", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new IngestError(
+      `Couldn't transcribe that video${
+        data?.error?.message ? ` — ${data.error.message}` : ""
+      }. Try a shorter, chapter-length video, or make sure the link is public.`,
+    );
+  }
+  const text: string = data.text ?? "";
+  if (text.replace(/\s+/g, "").length < 300) {
+    throw new IngestError(
+      "The video didn't yield enough readable text — try a clearer audiobook or page video.",
+    );
+  }
+
+  onStatus("Building your book pages…");
+  const pdf = await textToPdf(text, title || "My Book", author || "");
+  const pdfBytes = pdf.buffer.slice(
+    pdf.byteOffset,
+    pdf.byteOffset + pdf.byteLength,
+  ) as ArrayBuffer;
+  const pageCount = await assertTextLayer(pdfBytes);
+  const record: BookRecord = {
+    bookId: crypto.randomUUID(),
+    title: title || "My Book",
+    author,
+    provider: "upload",
+    createdAt: Date.now(),
+    pageCount,
+    generatedPdf: true,
+  };
+  await saveBook(record, pdfBytes);
+  return record.bookId;
+}
+
+/**
  * Build a book from photos of a physical book's pages: OCR each photo via
  * the server (Gemini vision), then lay the text out as annotatable pages.
  * The user's own paper copy becomes a digital study copy on their device.
