@@ -57,6 +57,15 @@ export function mockAnalysis(title: string, author: string): BookAnalysis {
   };
 }
 
+/** Deterministic YouTube-transcription fixture (audiobook / page video). */
+export function mockYouTube(): string {
+  return Array.from(
+    { length: 12 },
+    (_, i) =>
+      `Chapter passage ${i + 1}. The lantern keeper of Bellwater climbed the spiral stairs as the cold grey sea muttered below, and the light turned slowly like a small stubborn sun that refused the storm.`,
+  ).join("\n\n");
+}
+
 /** Deterministic OCR fixture — one paragraph-y "page" per image. */
 export function mockOcr(count: number): string[] {
   return Array.from({ length: count }, (_, i) =>

@@ -15,12 +15,19 @@ import {
   ANALYZE_REDUCE_SCOPE,
   IDENTIFY_PROMPT,
   OCR_PROMPT,
+  YOUTUBE_PROMPT,
   analyzeChunkScope,
   analyzePrompt,
   annotatePrompt,
 } from "./prompts";
 import type { Annotation, BookAnalysis, IdentifyResult } from "@/lib/types";
-import { mockAnalysis, mockAnnotate, mockIdentify, mockOcr } from "./mock";
+import {
+  mockAnalysis,
+  mockAnnotate,
+  mockIdentify,
+  mockOcr,
+  mockYouTube,
+} from "./mock";
 
 const MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
@@ -50,7 +57,38 @@ export class GeminiError extends Error {
   }
 }
 
-type Part = { text: string } | { inlineData: { mimeType: string; data: string } };
+type Part =
+  | { text: string }
+  | { inlineData: { mimeType: string; data: string } }
+  | { fileData: { fileUri: string; mimeType?: string } };
+
+/** One plain-text generation call with retry/backoff on rate limits. */
+async function generateText(parts: Part[]): Promise<string> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await ai().models.generateContent({
+        model: MODEL,
+        contents: [{ role: "user", parts }],
+      });
+      const text = res.text;
+      if (!text) throw new GeminiError("empty_response", "Gemini returned no text");
+      return text;
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const retryable = /429|rate|quota|RESOURCE_EXHAUSTED|503|overloaded/i.test(msg);
+      if (!retryable || attempt === 2) break;
+      await new Promise((r) => setTimeout(r, 1500 * 2 ** attempt));
+    }
+  }
+  if (lastErr instanceof GeminiError) throw lastErr;
+  const msg = lastErr instanceof Error ? lastErr.message : String(lastErr);
+  throw new GeminiError(
+    /429|quota|RESOURCE_EXHAUSTED/i.test(msg) ? "rate_limited" : "gemini_error",
+    msg,
+  );
+}
 
 /** One structured-output call with retry/backoff on rate limits. */
 async function generateJson(parts: Part[], schema: Schema): Promise<unknown> {
@@ -113,6 +151,15 @@ export async function ocrPageImages(
   );
   const parsed = ocrZ.parse(raw);
   return parsed.pages.map((p) => p.text);
+}
+
+/**
+ * Transcribe a book from a YouTube video — audiobook (read aloud) or a
+ * page/screen video (text shown). Gemini ingests the public URL directly.
+ */
+export async function transcribeYouTube(url: string): Promise<string> {
+  if (mockMode()) return mockYouTube();
+  return generateText([{ fileData: { fileUri: url } }, { text: YOUTUBE_PROMPT }]);
 }
 
 export async function analyzeBookText(args: {

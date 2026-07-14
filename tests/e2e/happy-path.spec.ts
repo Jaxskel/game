@@ -85,6 +85,29 @@ test("full flow: photo → identify → fetch → dashboard → highlighted read
   expect(head).toBe("%PDF-");
 });
 
+test("youtube path: an audiobook/page video link becomes an annotated book", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByTestId("skip-photo").click();
+  await page.getByTestId("title-input").fill("The Lantern Keeper");
+  await page.getByTestId("confirm-book").click();
+
+  await page
+    .getByTestId("youtube-url-input")
+    .fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  await page.getByTestId("youtube-import").click();
+
+  await page.waitForURL(/\/book\/[a-f0-9-]+$/, { timeout: 60_000 });
+  await expect(page.getByTestId("analysis-dashboard")).toBeVisible();
+
+  await page.getByTestId("open-reader").click();
+  await expect(page.getByTestId("pdf-canvas")).toBeVisible();
+  await expect(page.getByTestId("highlight-rect").first()).toBeVisible({
+    timeout: 60_000,
+  });
+});
+
 test("snap-pages path: photos of a paper book become an annotated book", async ({
   page,
 }) => {

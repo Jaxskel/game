@@ -5,6 +5,13 @@ export const OCR_PROMPT = `Each image is a photo of one or more pages from a pri
 - If part is blurry or unreadable, transcribe what you can and continue.
 Return one entry per image, in the same order as the images.`;
 
+export const YOUTUBE_PROMPT = `This YouTube video presents a book — either read ALOUD (an audiobook) or SHOWN on screen (pages/text). Transcribe the book's actual text as accurately and completely as you can, in reading order.
+- If it's narrated, transcribe the spoken words verbatim.
+- If pages/text are shown on screen, read and transcribe them.
+- Preserve paragraph breaks as blank lines; for poetry/verse, preserve line breaks.
+- Ignore intros, sponsorships, channel chatter, and outros — only the book text.
+Output only the transcribed book text, no commentary.`;
+
 export const IDENTIFY_PROMPT = `You are looking at a photo of a book (usually its cover, possibly a spine or title page).
 Identify the book. Return:
 - identified: true only if you can read or confidently recognize a real published book
