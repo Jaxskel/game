@@ -1,11 +1,13 @@
 /**
- * Choose which sampled video frames are distinct, settled book pages.
+ * Choose which sampled video frames are distinct, in-focus book pages.
  *
- * Input: one small grayscale "signature" per sampled frame (in time order).
- * We keep a frame when it is (a) STABLE — similar to the previous sample, so
- * it's a page being held still, not a mid-turn blur — and (b) CHANGED —
- * sufficiently different from the last kept page, so we don't keep the same
- * page twice. Pure and deterministic for unit testing.
+ * Two selectors:
+ *  - selectKeyFrames: original "stable + changed" picker (kept for reference).
+ *  - selectPageFrames: sharpness-aware picker — splits the timeline into page
+ *    clusters at big frame-to-frame jumps (page turns) and keeps the SHARPEST
+ *    frame of each cluster. This lets the user flip at a steady pace instead of
+ *    freezing on every page, and tolerates motion blur.
+ * Pure and deterministic for unit testing.
  */
 
 export function meanAbsDiff(a: number[], b: number[]): number {
@@ -16,12 +18,29 @@ export function meanAbsDiff(a: number[], b: number[]): number {
   return sum / n;
 }
 
+/** Edge energy of a WxH grayscale signature — higher = sharper/in-focus. */
+export function edgeEnergy(sig: number[], w: number, h: number): number {
+  let e = 0;
+  let n = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      if (x + 1 < w) {
+        e += Math.abs(sig[i] - sig[i + 1]);
+        n++;
+      }
+      if (y + 1 < h) {
+        e += Math.abs(sig[i] - sig[i + w]);
+        n++;
+      }
+    }
+  }
+  return n ? e / n : 0;
+}
+
 export interface SelectOptions {
-  /** Min difference from the last kept page to count as a new page (0–255). */
   changeThreshold?: number;
-  /** Max difference from the previous sample to count as "settled" (0–255). */
   stableThreshold?: number;
-  /** Hard cap on kept frames (evenly subsampled if exceeded). */
   maxFrames?: number;
 }
 
@@ -49,9 +68,62 @@ export function selectKeyFrames(
   }
 
   if (kept.length <= maxFrames) return kept;
-  // Evenly subsample to the cap, always keeping first and last.
   const out: number[] = [];
   const stepF = (kept.length - 1) / (maxFrames - 1);
   for (let k = 0; k < maxFrames; k++) out.push(kept[Math.round(k * stepF)]);
   return [...new Set(out)];
+}
+
+export interface PageFrame {
+  sig: number[];
+  sharp: number;
+}
+
+export interface PageSelectOptions {
+  /** Frame-to-frame difference (0–255) that marks a page turn. */
+  boundaryThreshold?: number;
+  /** Drop page clusters whose sharpest frame is below this fraction of the
+   * sharpest frame overall (filters blurry mid-turn transition clusters). */
+  sharpFloorRatio?: number;
+  maxFrames?: number;
+}
+
+/**
+ * Split frames into page clusters at big jumps, keep the sharpest frame of
+ * each, and drop clusters too blurry to be a real held page.
+ */
+export function selectPageFrames(
+  frames: PageFrame[],
+  opts: PageSelectOptions = {},
+): number[] {
+  const boundaryThreshold = opts.boundaryThreshold ?? 16;
+  const sharpFloorRatio = opts.sharpFloorRatio ?? 0.35;
+  const maxFrames = opts.maxFrames ?? 80;
+  if (frames.length === 0) return [];
+
+  const clusters: { idx: number; sharp: number }[] = [];
+  let best: { idx: number; sharp: number } | null = null;
+  for (let i = 0; i < frames.length; i++) {
+    const jump = i > 0 ? meanAbsDiff(frames[i].sig, frames[i - 1].sig) : 0;
+    if (i > 0 && jump >= boundaryThreshold) {
+      if (best) clusters.push(best);
+      best = null;
+    }
+    if (!best || frames[i].sharp > best.sharp) {
+      best = { idx: i, sharp: frames[i].sharp };
+    }
+  }
+  if (best) clusters.push(best);
+
+  const maxSharp = Math.max(...clusters.map((c) => c.sharp), 1);
+  const floor = maxSharp * sharpFloorRatio;
+  let kept = clusters.filter((c) => c.sharp >= floor).map((c) => c.idx);
+
+  if (kept.length > maxFrames) {
+    const out: number[] = [];
+    const stepF = (kept.length - 1) / (maxFrames - 1);
+    for (let k = 0; k < maxFrames; k++) out.push(kept[Math.round(k * stepF)]);
+    kept = [...new Set(out)];
+  }
+  return kept.sort((a, b) => a - b);
 }
