@@ -1,6 +1,6 @@
 "use client";
 
-import { selectKeyFrames } from "./frameSelect";
+import { edgeEnergy, selectPageFrames } from "./frameSelect";
 
 function seek(video: HTMLVideoElement, time: number): Promise<void> {
   return new Promise((resolve) => {
@@ -46,35 +46,39 @@ export async function extractPageFrames(
       throw new Error("Couldn't read the video length — try re-recording.");
     }
 
-    // Pass 1: sample small grayscale signatures across the timeline.
-    const MAX_SAMPLES = 240;
-    const step = Math.max(0.35, duration / MAX_SAMPLES);
+    // Pass 1: sample small grayscale signatures + sharpness across the
+    // timeline. Denser sampling (~5/sec) so a steadily-paced flip still lands
+    // a sharp frame on each page — no need to freeze on every page.
+    const MAX_SAMPLES = 400;
+    const step = Math.max(0.2, duration / MAX_SAMPLES);
+    const W = 48;
+    const H = 64;
     const small = document.createElement("canvas");
-    small.width = 48;
-    small.height = 64;
+    small.width = W;
+    small.height = H;
     const sctx = small.getContext("2d", { willReadFrequently: true })!;
 
     const times: number[] = [];
-    const sigs: number[][] = [];
+    const frames: { sig: number[]; sharp: number }[] = [];
     for (let t = 0; t < duration; t += step) {
       await seek(video, t);
-      sctx.drawImage(video, 0, 0, small.width, small.height);
-      const { data } = sctx.getImageData(0, 0, small.width, small.height);
+      sctx.drawImage(video, 0, 0, W, H);
+      const { data } = sctx.getImageData(0, 0, W, H);
       const sig: number[] = [];
       for (let p = 0; p < data.length; p += 4) {
         sig.push((data[p] + data[p + 1] + data[p + 2]) / 3);
       }
       times.push(t);
-      sigs.push(sig);
-      if (times.length % 20 === 0) {
+      frames.push({ sig, sharp: edgeEnergy(sig, W, H) });
+      if (times.length % 25 === 0) {
         onStatus?.(`Scanning your video… ${Math.round((t / duration) * 100)}%`);
       }
     }
 
-    const keepIdx = selectKeyFrames(sigs, { maxFrames: 60 });
+    const keepIdx = selectPageFrames(frames, { maxFrames: 120 });
     if (keepIdx.length === 0) {
       throw new Error(
-        "Couldn't find any clear pages in the video — flip a little slower and hold each page still for a moment.",
+        "Couldn't find any clear pages in the video — flip at a steady pace with the book well-lit and in focus.",
       );
     }
 
@@ -82,7 +86,7 @@ export async function extractPageFrames(
     const maxDim = 1600;
     const full = document.createElement("canvas");
     const fctx = full.getContext("2d")!;
-    const frames: File[] = [];
+    const pageFiles: File[] = [];
     for (let k = 0; k < keepIdx.length; k++) {
       onStatus?.(`Capturing page ${k + 1} of ${keepIdx.length}…`);
       await seek(video, times[keepIdx[k]]);
@@ -97,10 +101,10 @@ export async function extractPageFrames(
         full.toBlob(res, "image/jpeg", 0.82),
       );
       if (blob) {
-        frames.push(new File([blob], `page-${k + 1}.jpg`, { type: "image/jpeg" }));
+        pageFiles.push(new File([blob], `page-${k + 1}.jpg`, { type: "image/jpeg" }));
       }
     }
-    return frames;
+    return pageFiles;
   } finally {
     URL.revokeObjectURL(video.src);
   }

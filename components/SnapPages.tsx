@@ -24,9 +24,14 @@ export default function SnapPages({
       <p className="text-sm font-medium text-stone-700">
         📷 Only have the paper book?{" "}
         <span className="font-normal text-stone-500">
-          Photograph the pages you&apos;re studying (in order, good light, one
-          page per photo) and I&apos;ll turn them into an annotatable book.
+          Photograph the pages you&apos;re studying and I&apos;ll turn them into
+          an annotatable book.
         </span>
+      </p>
+      <p className="mt-1 rounded-lg bg-amber-50 px-2 py-1.5 text-xs text-amber-900">
+        ⚡ Faster: hold the book open and shoot the{" "}
+        <span className="font-semibold">whole spread — both pages at once</span>
+        . You can also select many photos in one go.
       </p>
       <input
         ref={inputRef}
@@ -79,8 +84,9 @@ export default function SnapPages({
       <div className="mt-4 border-t border-stone-100 pt-3">
         <p className="text-sm text-stone-500">
           🎥 Or <span className="font-medium text-stone-700">record a
-          page-flip video</span> — flip slowly, holding each page still for a
-          moment, and I&apos;ll grab one clear shot of every page.
+          page-flip video</span> — flip at a steady pace (no need to freeze on
+          each page) and I&apos;ll grab the sharpest shot of every page. Filming
+          two-page spreads works here too.
         </p>
         <input
           ref={videoRef}

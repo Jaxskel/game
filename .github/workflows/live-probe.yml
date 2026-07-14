@@ -19,6 +19,8 @@ jobs:
           node-version: 22
       - name: Probe the deployed app's API endpoints
         run: node scripts/live-probe.mjs
+      - name: Confirm latest build is live on Vercel
+        run: node scripts/deploy-check.mjs
       - name: Multi-book search + download sweep
         run: node scripts/book-sweep.mjs
       - name: Install deps
