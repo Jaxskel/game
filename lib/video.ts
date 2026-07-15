@@ -2,16 +2,40 @@
 
 import { edgeEnergy, selectPageFrames } from "./frameSelect";
 
-function seek(video: HTMLVideoElement, time: number): Promise<void> {
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Seek and wait until the frame is ready to draw. iOS Safari never fires
+ * "seeked" when the target equals the current position, and occasionally
+ * drops the event entirely — an already-there check plus a timeout keep this
+ * from hanging forever.
+ */
+function seek(
+  video: HTMLVideoElement,
+  time: number,
+  timeoutMs = 4000,
+): Promise<void> {
   return new Promise((resolve) => {
-    const onSeeked = () => {
-      video.removeEventListener("seeked", onSeeked);
+    const dur = video.duration;
+    const target = Math.max(
+      0,
+      isFinite(dur) && dur > 0 ? Math.min(time, dur - 0.01) : time,
+    );
+    if (Math.abs(video.currentTime - target) < 0.03 && video.readyState >= 2) {
+      resolve();
+      return;
+    }
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      video.removeEventListener("seeked", finish);
       resolve();
     };
-    video.addEventListener("seeked", onSeeked);
-    const dur = video.duration;
-    const target = isFinite(dur) && dur > 0 ? Math.min(time, dur - 0.01) : time;
-    video.currentTime = Math.max(0, target);
+    const timer = setTimeout(finish, timeoutMs);
+    video.addEventListener("seeked", finish);
+    video.currentTime = target;
   });
 }
 
@@ -36,6 +60,17 @@ export async function extractPageFrames(
       video.onerror = () => reject(new Error("Couldn't open this video."));
     });
 
+    // iOS Safari won't decode/paint video frames into a canvas until the
+    // video has actually started playing once — kick playback briefly
+    // (muted + playsInline, so it's allowed without a tap).
+    try {
+      await video.play();
+      await sleep(150);
+      video.pause();
+    } catch {
+      // Autoplay refused — seeking below still works on most browsers.
+    }
+
     // Some phone recordings report Infinity duration until you seek far ahead.
     let duration = video.duration;
     if (!isFinite(duration) || duration === 0) {
@@ -45,6 +80,7 @@ export async function extractPageFrames(
     if (!isFinite(duration) || duration === 0) {
       throw new Error("Couldn't read the video length — try re-recording.");
     }
+    onStatus?.("Scanning your video… 0%");
 
     // Pass 1: sample small grayscale signatures + sharpness across the
     // timeline. Denser sampling (~5/sec) so a steadily-paced flip still lands
@@ -103,6 +139,11 @@ export async function extractPageFrames(
       if (blob) {
         pageFiles.push(new File([blob], `page-${k + 1}.jpg`, { type: "image/jpeg" }));
       }
+    }
+    if (pageFiles.length === 0) {
+      throw new Error(
+        "Couldn't capture any pages from the video — try re-recording with the book well-lit.",
+      );
     }
     return pageFiles;
   } finally {
