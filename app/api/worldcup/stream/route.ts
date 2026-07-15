@@ -2,6 +2,10 @@ import { MatchEngine, TICK_MS } from "@/lib/worldcup/engine";
 import type { StreamMessage } from "@/lib/worldcup/types";
 
 export const dynamic = "force-dynamic";
+// On serverless hosts (e.g. Vercel) a streaming response ends when the
+// function hits its duration cap; keep segments long and let EventSource
+// reconnect — each reconnect re-syncs from a fresh snapshot.
+export const maxDuration = 300;
 
 type Client = { send: (msg: StreamMessage) => void; close: () => void };
 
