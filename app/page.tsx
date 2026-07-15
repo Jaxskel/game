@@ -119,7 +119,14 @@ export default function Home() {
       run(async () => {
         setIngestStatus("Opening your video…");
         const { extractPageFrames } = await import("@/lib/video");
-        const frames = await extractPageFrames(file, setIngestStatus);
+        let frames: File[];
+        try {
+          frames = await extractPageFrames(file, setIngestStatus);
+        } catch (e) {
+          throw new IngestError(
+            `${e instanceof Error && e.message ? e.message : "Couldn't process this video."} You can also snap photos of the pages instead.`,
+          );
+        }
         return ingestPhotos(frames, title, author, setIngestStatus);
       }),
     [run, title, author],
