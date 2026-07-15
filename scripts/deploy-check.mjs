@@ -33,10 +33,15 @@ for (const c of chunks) {
 ok("video mode deployed", bundle.includes("page-video-input"), "record-a-page-flip-video UI");
 ok("snap-pages deployed", bundle.includes("build-from-photos"), "photograph-pages UI");
 ok("EPUB upload deployed", /epub/i.test(bundle), "epub accept");
+ok(
+  "iPhone video fix deployed",
+  bundle.includes("You can also snap photos of the pages instead"),
+  "robust-seek + playback-kick build",
+);
 
 console.log(
   failures === 0
-    ? "\n🎉 LATEST BUILD (through video mode) IS LIVE ON VERCEL"
+    ? "\n🎉 LATEST BUILD (through iPhone video fix) IS LIVE ON VERCEL"
     : `\n${failures} MARKER(S) MISSING — newest commit may not be deployed`,
 );
 process.exit(failures === 0 ? 0 : 1);
