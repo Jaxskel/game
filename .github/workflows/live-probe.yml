@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - "scripts/live-probe.mjs"
+      - "scripts/deploy-check.mjs"
+      - "scripts/book-sweep.mjs"
       - "scripts/live-ingest-test.ts"
       - "lib/pdf/textToPdf.ts"
       - ".github/workflows/live-probe.yml"
