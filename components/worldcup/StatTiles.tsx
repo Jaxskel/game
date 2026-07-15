@@ -6,7 +6,7 @@ import type { MatchState, TeamStats } from "@/lib/worldcup/types";
 const ROWS: { label: string; get: (s: TeamStats) => string | number }[] = [
   { label: "Shots", get: (s) => s.shots },
   { label: "On target", get: (s) => s.shotsOnTarget },
-  { label: "Expected goals (xG)", get: (s) => s.xg.toFixed(2) },
+  { label: "xG (est.)", get: (s) => s.xg.toFixed(2) },
   { label: "Corners", get: (s) => s.corners },
   { label: "Offsides", get: (s) => s.offsides },
   { label: "Fouls", get: (s) => s.fouls },

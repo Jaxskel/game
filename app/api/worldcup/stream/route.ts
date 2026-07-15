@@ -1,4 +1,5 @@
 import { MatchEngine, TICK_MS } from "@/lib/worldcup/engine";
+import { LiveEngine } from "@/lib/worldcup/liveEngine";
 import type { StreamMessage } from "@/lib/worldcup/types";
 
 export const dynamic = "force-dynamic";
@@ -8,21 +9,39 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 type Client = { send: (msg: StreamMessage) => void; close: () => void };
+type Engine = MatchEngine | LiveEngine;
 
-/** One live match shared by every connected viewer. */
+/** One live match shared by every connected viewer. Prefers the real feed;
+    falls back to the simulation only if the feed never comes up. */
 class Hub {
-  private engine = Hub.freshEngine(1);
+  private engine: Engine;
   private clients = new Set<Client>();
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private lastTick = 0;
+
+  constructor() {
+    this.engine =
+      process.env.WORLDCUP_MODE === "sim"
+        ? Hub.freshSim(1)
+        : new LiveEngine(process.env.ESPN_EVENT_ID);
+  }
 
   /** Constructor-time events ship inside snapshots, so clear the pending
       buffer before the first tick or they'd be broadcast twice. */
-  private static freshEngine(simId: number): MatchEngine {
+  private static freshSim(simId: number): MatchEngine {
     const engine = new MatchEngine(Date.now() & 0xffffffff, simId);
     engine.drainEvents();
     return engine;
   }
-  private timer: ReturnType<typeof setInterval> | null = null;
-  private lastTick = 0;
+
+  debugInfo(): Record<string, unknown> {
+    const base = {
+      clients: this.clients.size,
+      ticking: Boolean(this.timer),
+    };
+    if (this.engine instanceof LiveEngine) return { ...base, ...this.engine.debugInfo() };
+    return { ...base, mode: "sim", state: this.engine.state() };
+  }
 
   add(client: Client) {
     this.clients.add(client);
@@ -36,7 +55,7 @@ class Hub {
   remove(client: Client) {
     this.clients.delete(client);
     if (this.clients.size === 0 && this.timer) {
-      // Pause the sim when nobody is watching.
+      // Pause when nobody is watching (the real feed re-polls on resume).
       clearInterval(this.timer);
       this.timer = null;
     }
@@ -48,8 +67,24 @@ class Hub {
     this.lastTick = now;
     this.engine.advance(dt);
 
-    if (this.engine.isFinished()) {
-      this.engine = Hub.freshEngine(this.engine.simId + 1);
+    if (this.engine instanceof LiveEngine) {
+      if (this.engine.feedDead()) {
+        // Real feed never came up — switch everyone to the simulation.
+        this.engine = Hub.freshSim(1);
+        this.broadcast(this.engine.snapshot());
+        return;
+      }
+      if (this.engine.consumeResync()) {
+        // First real data arrived (history backfilled) — resync everyone.
+        this.engine.drainEvents();
+        while (this.engine.drainHistoryPoint()) {
+          // included in the snapshot below
+        }
+        this.broadcast(this.engine.snapshot());
+        return;
+      }
+    } else if (this.engine.isFinished()) {
+      this.engine = Hub.freshSim(this.engine.simId + 1);
       this.broadcast(this.engine.snapshot());
       return;
     }
@@ -90,6 +125,10 @@ export async function GET(req: Request) {
   if (url.searchParams.has("ping")) {
     // Tiny endpoint the client uses to measure round-trip latency.
     return Response.json({ t: Date.now() }, { headers: { "cache-control": "no-store" } });
+  }
+  if (url.searchParams.has("debug")) {
+    // Upstream-feed health, for remote diagnosis.
+    return Response.json(hub().debugInfo(), { headers: { "cache-control": "no-store" } });
   }
 
   const encoder = new TextEncoder();

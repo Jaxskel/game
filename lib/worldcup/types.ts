@@ -77,6 +77,12 @@ export interface HistoryPoint {
 
 export interface MatchState {
   simId: number;
+  /** "real" = live upstream feed; "sim" = simulated fallback. */
+  mode: "real" | "sim";
+  /** Where the market prices come from. */
+  oddsSource: "polymarket" | "model";
+  /** Human status line from the real feed, e.g. "FT" or "2nd Half". */
+  statusDetail?: string;
   phase: Phase;
   /** Fractional match minute (45–50 during 1H stoppage etc.). */
   minute: number;

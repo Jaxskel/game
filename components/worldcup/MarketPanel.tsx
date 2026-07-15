@@ -20,7 +20,13 @@ export default function MarketPanel({ state }: { state: MatchState }) {
         {MATCH_INFO.marketQuestion}
       </h2>
       <p className="mt-1 text-xs" style={{ color: "var(--wc-muted)" }}>
-        {settled ? "Market resolved at full-time." : "Prices track the live model · demo only"}
+        {settled
+          ? "Market resolved at full-time."
+          : state.oddsSource === "polymarket"
+            ? "Live Polymarket prices · display only"
+            : state.mode === "real"
+              ? "Model odds from the live score · display only"
+              : "Prices track the live model · demo only"}
       </p>
 
       <div className="mt-3 flex flex-col gap-2">

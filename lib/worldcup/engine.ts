@@ -188,6 +188,8 @@ export class MatchEngine {
     this.stats.ARG.possession = 100 - engPos;
     return {
       simId: this.simId,
+      mode: "sim",
+      oddsSource: "model",
       phase: this.phase,
       minute: this.minute,
       clock: this.clockLabel(),

@@ -95,9 +95,11 @@ export default function ProbChart({
         <h2 className="text-sm font-semibold" style={{ color: "var(--wc-text-2)" }}>
           Match odds — live
         </h2>
-        <span className="wc-num text-xs" style={{ color: "var(--wc-muted)" }}>
-          ${state.volume.toLocaleString("en-US")} Vol.
-        </span>
+        {state.volume > 0 && (
+          <span className="wc-num text-xs" style={{ color: "var(--wc-muted)" }}>
+            ${state.volume.toLocaleString("en-US")} Vol.
+          </span>
+        )}
       </div>
 
       {/* Legend doubles as the live read-out (direct labels, not color-alone). */}

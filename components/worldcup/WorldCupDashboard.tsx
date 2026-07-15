@@ -162,8 +162,10 @@ export default function WorldCupDashboard() {
         )}
 
         <p className="mt-6 text-center text-xs" style={{ color: "var(--wc-muted)" }}>
-          Demo dashboard with a simulated live feed — not affiliated with Polymarket or FIFA; no real
-          orders are placed.
+          {state?.mode === "real"
+            ? "Score, stats and commentary via ESPN's public feed; prices via Polymarket when available, otherwise a live Poisson model. Ball animation is illustrative."
+            : "Simulated live feed (real feed unavailable)."}{" "}
+          Not affiliated with Polymarket, ESPN or FIFA; no real orders are placed.
         </p>
       </div>
     </div>
@@ -186,6 +188,22 @@ function Header({
           {MATCH_INFO.competition} · {MATCH_INFO.round} · {MATCH_INFO.venue} · {MATCH_INFO.date}
         </span>
         <span className="flex items-center gap-3">
+          {state && (
+            <span
+              className="rounded-full border px-2 py-0.5 font-semibold"
+              style={{
+                borderColor: "var(--wc-border)",
+                color: state.mode === "real" ? "var(--wc-good)" : "var(--wc-muted)",
+              }}
+              title={
+                state.mode === "real"
+                  ? `Real match data (ESPN public feed) · odds: ${state.oddsSource === "polymarket" ? "Polymarket prices" : "live model"}`
+                  : "Simulated match — real feed unavailable"
+              }
+            >
+              {state.mode === "real" ? "REAL DATA" : "SIM"}
+            </span>
+          )}
           {state && state.phase !== "ft" && (
             <span className="flex items-center gap-1.5 font-semibold" style={{ color: "var(--wc-bad)" }}>
               <span className="wc-live-dot inline-block h-2 w-2 rounded-full" style={{ background: "var(--wc-bad)" }} />
