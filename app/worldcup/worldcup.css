@@ -1,0 +1,89 @@
+/* Polymarket-style dark dashboard, light mode supported.
+   Series colors validated with the dataviz palette checker:
+   dark  #e66767 / #2e9be6  ·  light  #e34948 / #1e93e4  (all checks pass).
+   Draw is a deliberate neutral grey — identity is carried by direct labels. */
+
+.wc-root {
+  color-scheme: dark;
+  --wc-page: #0d0d0d;
+  --wc-surface: #1a1a19;
+  --wc-surface-2: #232322;
+  --wc-border: rgba(255, 255, 255, 0.1);
+  --wc-text: #ffffff;
+  --wc-text-2: #c3c2b7;
+  --wc-muted: #898781;
+  --wc-grid: #2c2c2a;
+  --wc-axis: #383835;
+  --wc-eng: #e66767;
+  --wc-arg: #2e9be6;
+  --wc-draw: #9b9992;
+  --wc-good: #0ca30c;
+  --wc-bad: #d03b3b;
+  --wc-pitch: #14351f;
+  --wc-pitch-stripe: #17402455;
+  --wc-pitch-line: rgba(255, 255, 255, 0.55);
+
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--wc-page);
+  color: var(--wc-text);
+}
+
+@media (prefers-color-scheme: light) {
+  .wc-root {
+    color-scheme: light;
+    --wc-page: #f9f9f7;
+    --wc-surface: #fcfcfb;
+    --wc-surface-2: #f0efec;
+    --wc-border: rgba(11, 11, 11, 0.1);
+    --wc-text: #0b0b0b;
+    --wc-text-2: #52514e;
+    --wc-muted: #898781;
+    --wc-grid: #e1e0d9;
+    --wc-axis: #c3c2b7;
+    --wc-eng: #e34948;
+    --wc-arg: #1e93e4;
+    --wc-draw: #77766f;
+    --wc-pitch: #2e7d44;
+    --wc-pitch-stripe: #37905155;
+    --wc-pitch-line: rgba(255, 255, 255, 0.85);
+  }
+}
+
+.wc-card {
+  background: var(--wc-surface);
+  border: 1px solid var(--wc-border);
+  border-radius: 12px;
+}
+
+.wc-live-dot {
+  animation: wc-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes wc-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.wc-feed-item {
+  animation: wc-slide-in 0.25s ease-out;
+}
+
+@keyframes wc-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wc-num {
+  font-variant-numeric: tabular-nums;
+}
